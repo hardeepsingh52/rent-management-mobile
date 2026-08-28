@@ -1,3 +1,14 @@
+import { login } from "@/lib/auth-api";
+import {
+  authenticateWithBiometrics,
+  getBiometricSession,
+  isBiometricAvailable,
+  saveBiometricSession,
+} from "@/lib/biometric-session";
+import { useSessionContext } from "@/lib/session-context";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { Link, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -9,17 +20,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { Link, useRouter } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { login } from "@/lib/auth-api";
-import { useSessionContext } from "@/lib/session-context";
-import {
-  authenticateWithBiometrics,
-  getBiometricSession,
-  isBiometricAvailable,
-  saveBiometricSession,
-} from "@/lib/biometric-session";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -97,7 +97,7 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <LinearGradient colors={["#1565c0", "#0c447c"]} style={styles.header}>
+      <LinearGradient colors={["#16302b", "#0f4a42"]} style={styles.header}>
         <View style={styles.headerIcon}>
           <MaterialCommunityIcons
             name="office-building"
@@ -194,13 +194,13 @@ export default function LoginScreen() {
               disabled={biometricLoading}
             >
               {biometricLoading ? (
-                <ActivityIndicator color="#1565c0" />
+                <ActivityIndicator color="#2f8a75" />
               ) : (
                 <>
                   <MaterialCommunityIcons
                     name="fingerprint"
                     size={18}
-                    color="#1565c0"
+                    color="#2f8a75"
                   />
                   <Text style={styles.biometricButtonText}>
                     Log in with Face ID
@@ -216,7 +216,7 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: "#f5f6fa" },
   header: {
     paddingTop: 56,
     paddingBottom: 32,
@@ -233,7 +233,13 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 22, fontWeight: "600", color: "#fff" },
   subtitle: { fontSize: 13, color: "rgba(255,255,255,0.75)", marginTop: 6 },
-  content: { padding: 24 },
+  content: {
+    backgroundColor: "#fff",
+    marginHorizontal: 18,
+    marginTop: -24,
+    borderRadius: 24,
+    padding: 24,
+  },
   error: {
     backgroundColor: "#fee2e2",
     color: "#b91c1c",
@@ -242,7 +248,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontSize: 14,
   },
-  label: { fontSize: 13, fontWeight: "600", color: "#111", marginBottom: 6 },
+  label: { fontSize: 13, fontWeight: "600", color: "#16302b", marginBottom: 6 },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
@@ -256,13 +262,13 @@ const styles = StyleSheet.create({
   input: { flex: 1, paddingVertical: 13, fontSize: 14 },
   forgotLink: {
     textAlign: "right",
-    color: "#1565c0",
+    color: "#2f8a75",
     fontSize: 12,
     fontWeight: "500",
     marginBottom: 20,
   },
   button: {
-    backgroundColor: "#1565c0",
+    backgroundColor: "#16302b",
     paddingVertical: 15,
     borderRadius: 12,
     alignItems: "center",
@@ -287,5 +293,5 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
   },
-  biometricButtonText: { fontSize: 14, fontWeight: "500", color: "#111" },
+  biometricButtonText: { fontSize: 14, fontWeight: "500", color: "#16302b" },
 });

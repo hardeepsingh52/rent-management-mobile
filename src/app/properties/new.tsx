@@ -1,5 +1,10 @@
-import { useEffect, useState } from "react";
+import { createProperty } from "@/lib/properties-api";
+import { getPropertyTypes } from "@/lib/property-types-api";
+import { useSession } from "@/lib/session-context";
+import type { PropertyType } from "@/lib/types";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -9,10 +14,50 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { useSession } from "@/lib/session-context";
-import { getPropertyTypes } from "@/lib/property-types-api";
-import { createProperty } from "@/lib/properties-api";
-import type { PropertyType } from "@/lib/types";
+
+type TypeVisual = {
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  tint: string;
+  accent: string;
+};
+
+function getPropertyTypeVisual(name: string): TypeVisual {
+  const type = name.toLowerCase();
+  if (type.includes("condo")) {
+    return { icon: "domain", tint: "#fdece0", accent: "#d9601f" };
+  }
+  if (type.includes("duplex")) {
+    return { icon: "home-group", tint: "#efe7fb", accent: "#7c4dff" };
+  }
+  if (type.includes("mobile")) {
+    return { icon: "home-variant-outline", tint: "#e3f0fc", accent: "#1f6fd9" };
+  }
+  if (type.includes("town")) {
+    return { icon: "office-building", tint: "#fdece0", accent: "#d9601f" };
+  }
+  if (type.includes("apartment") || type.includes("building")) {
+    return { icon: "office-building", tint: "#dff5f2", accent: "#2f8a75" };
+  }
+  return { icon: "home-outline", tint: "#dff5f2", accent: "#2f8a75" };
+}
+
+function formatPropertyType(type: string): string {
+  return type.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+}
+
+function FieldIcon({
+  name,
+  color,
+}: {
+  name: keyof typeof MaterialCommunityIcons.glyphMap;
+  color: string;
+}) {
+  return (
+    <View style={[styles.fieldIcon, { backgroundColor: color + "22" }]}>
+      <MaterialCommunityIcons name={name} size={13} color={color} />
+    </View>
+  );
+}
 
 export default function NewPropertyScreen() {
   const router = useRouter();
@@ -107,98 +152,161 @@ export default function NewPropertyScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <View style={styles.header}>
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <MaterialCommunityIcons
+            name="chevron-left"
+            size={18}
+            color="#16302b"
+          />
+        </Pressable>
+        <Text style={styles.title}>Add property</Text>
+        <View style={styles.headerIcon}>
+          <MaterialCommunityIcons
+            name="home-plus-outline"
+            size={20}
+            color="#2f8a75"
+          />
+        </View>
+      </View>
+      <Text style={styles.headerSubtitle}>
+        Fill in the details to add a new property.
+      </Text>
+
       {submitError && <Text style={styles.error}>{submitError}</Text>}
 
       <Text style={styles.label}>Property name</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Maple Street Duplex"
-        value={name}
-        onChangeText={setName}
-        editable={!submitting}
-      />
+      <View style={styles.inputWrapper}>
+        <FieldIcon name="office-building" color="#2f8a75" />
+        <TextInput
+          style={styles.input}
+          placeholder="Maple Street Duplex"
+          value={name}
+          onChangeText={setName}
+          editable={!submitting}
+        />
+      </View>
 
       <Text style={styles.label}>Property type</Text>
-      <View style={styles.chipRow}>
-        {propertyTypes.map((type) => (
-          <Pressable
-            key={type.id}
-            style={[
-              styles.chip,
-              propertyTypeId === type.id && styles.chipSelected,
-            ]}
-            onPress={() => setPropertyTypeId(type.id)}
-            disabled={submitting}
-          >
-            <Text
+      <View style={styles.typeGrid}>
+        {propertyTypes.map((type) => {
+          const visual = getPropertyTypeVisual(type.name);
+          const selected = propertyTypeId === type.id;
+          return (
+            <Pressable
+              key={type.id}
               style={[
-                styles.chipText,
-                propertyTypeId === type.id && styles.chipTextSelected,
+                styles.typeCard,
+                { backgroundColor: visual.tint },
+                selected && { borderColor: visual.accent },
               ]}
+              onPress={() => setPropertyTypeId(type.id)}
+              disabled={submitting}
             >
-              {type.name}
-            </Text>
-          </Pressable>
-        ))}
+              <View style={styles.typeIcon}>
+                <MaterialCommunityIcons
+                  name={visual.icon}
+                  size={13}
+                  color={visual.accent}
+                />
+              </View>
+              <Text style={[styles.typeText, { color: visual.accent }]}>
+                {formatPropertyType(type.name)}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       <Text style={styles.label}>Address line 1</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="123 Maple St"
-        value={line1}
-        onChangeText={setLine1}
-        editable={!submitting}
-      />
+      <View style={styles.inputWrapper}>
+        <FieldIcon name="map-marker-outline" color="#2f8a75" />
+        <TextInput
+          style={styles.input}
+          placeholder="123 Maple St"
+          value={line1}
+          onChangeText={setLine1}
+          editable={!submitting}
+        />
+      </View>
 
-      <Text style={styles.label}>Address line 2</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Unit, suite, etc. (optional)"
-        value={line2}
-        onChangeText={setLine2}
-        editable={!submitting}
-      />
+      <Text style={styles.label}>Address line 2 (optional)</Text>
+      <View style={styles.inputWrapper}>
+        <FieldIcon name="door" color="#2f8a75" />
+        <TextInput
+          style={styles.input}
+          placeholder="Unit, suite, etc. (optional)"
+          value={line2}
+          onChangeText={setLine2}
+          editable={!submitting}
+        />
+      </View>
 
       <View style={styles.row}>
         <View style={styles.rowItem}>
           <Text style={styles.label}>City</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Toronto"
-            value={city}
-            onChangeText={setCity}
-            editable={!submitting}
-          />
+          <View style={styles.inputWrapper}>
+            <FieldIcon name="city-variant-outline" color="#2f8a75" />
+            <TextInput
+              style={styles.input}
+              placeholder="Toronto"
+              value={city}
+              onChangeText={setCity}
+              editable={!submitting}
+            />
+          </View>
         </View>
         <View style={styles.rowItem}>
           <Text style={styles.label}>Province</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="ON"
-            value={region}
-            onChangeText={setRegion}
-            editable={!submitting}
-          />
+          <View style={styles.inputWrapper}>
+            <FieldIcon name="map-outline" color="#2f8a75" />
+            <TextInput
+              style={styles.input}
+              placeholder="ON"
+              value={region}
+              onChangeText={setRegion}
+              editable={!submitting}
+            />
+          </View>
         </View>
       </View>
 
       <View style={styles.row}>
         <View style={styles.rowItem}>
           <Text style={styles.label}>Postal code</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="M5V 2T6"
-            value={postalCode}
-            onChangeText={setPostalCode}
-            editable={!submitting}
-          />
+          <View style={styles.inputWrapper}>
+            <FieldIcon name="email-outline" color="#2f8a75" />
+            <TextInput
+              style={styles.input}
+              placeholder="M5V 2T6"
+              value={postalCode}
+              onChangeText={setPostalCode}
+              editable={!submitting}
+            />
+          </View>
         </View>
         <View style={styles.rowItem}>
           <Text style={styles.label}>Country</Text>
-          <View style={[styles.input, styles.inputDisabled]}>
+          <View style={[styles.inputWrapper, styles.inputDisabled]}>
+            <FieldIcon name="earth" color="#2f8a75" />
             <Text style={styles.disabledText}>Canada</Text>
           </View>
+        </View>
+      </View>
+
+      <View style={styles.infoBanner}>
+        <View style={styles.infoIcon}>
+          <MaterialCommunityIcons
+            name="clipboard-check-outline"
+            size={15}
+            color="#2f8a75"
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.infoTitle}>Double check your details</Text>
+          <Text style={styles.infoText}>
+            Make sure the address is correct to manage your property easily.
+          </Text>
         </View>
       </View>
 
@@ -227,13 +335,13 @@ export default function NewPropertyScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: "#f5f6fa" },
   content: { padding: 20, paddingBottom: 40 },
   centered: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#f5f6fa",
   },
   error: {
     backgroundColor: "#fee2e2",
@@ -243,52 +351,113 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontSize: 13,
   },
+  header: { flexDirection: "row", alignItems: "center", gap: 12 },
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  title: { flex: 1, fontSize: 20, fontWeight: "700", color: "#16302b" },
+  headerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#dff5f2",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: "#8a8fa8",
+    marginTop: 6,
+    marginLeft: 44,
+    marginBottom: 20,
+  },
   label: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#111",
+    color: "#16302b",
     marginBottom: 6,
     marginTop: 14,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
-  inputDisabled: { backgroundColor: "#f1efe8", justifyContent: "center" },
-  disabledText: { fontSize: 14, color: "#5f5e5a" },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+  fieldIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  chipSelected: { backgroundColor: "#1565c0", borderColor: "#1565c0" },
-  chipText: { fontSize: 13, color: "#111" },
-  chipTextSelected: { color: "#fff", fontWeight: "600" },
+  input: { flex: 1, paddingVertical: 8, fontSize: 14, color: "#16302b" },
+  inputDisabled: {},
+  disabledText: { fontSize: 14, color: "#8a8fa8" },
+  typeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  typeCard: {
+    width: "48%",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 12,
+    padding: 10,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  typeIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  typeText: { fontSize: 11, fontWeight: "600", flexShrink: 1 },
   row: { flexDirection: "row", gap: 12 },
   rowItem: { flex: 1 },
-  actions: { flexDirection: "row", gap: 10, marginTop: 28 },
+  infoBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    backgroundColor: "#dff5f2",
+    borderRadius: 14,
+    padding: 12,
+    marginTop: 20,
+  },
+  infoIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  infoTitle: { fontSize: 12, fontWeight: "700", color: "#0f4a42" },
+  infoText: { fontSize: 10, color: "#0f4a42", marginTop: 2, lineHeight: 14 },
+  actions: { flexDirection: "row", gap: 10, marginTop: 20 },
   cancelButton: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 10,
-    paddingVertical: 12,
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    paddingVertical: 13,
     alignItems: "center",
   },
-  cancelButtonText: { fontSize: 14, fontWeight: "600", color: "#111" },
+  cancelButtonText: { fontSize: 13, fontWeight: "600", color: "#16302b" },
   submitButton: {
     flex: 1,
-    backgroundColor: "#1565c0",
-    borderRadius: 10,
-    paddingVertical: 12,
+    backgroundColor: "#16302b",
+    borderRadius: 14,
+    paddingVertical: 13,
     alignItems: "center",
   },
-  submitButtonText: { fontSize: 14, fontWeight: "600", color: "#fff" },
+  submitButtonText: { fontSize: 13, fontWeight: "600", color: "#fff" },
 });

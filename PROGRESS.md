@@ -26,6 +26,51 @@ lives there rather than being duplicated here.
 - **Canadian & Provincial Tenancy Law Compliance (Federal, Ontario, Manitoba)**: same standing
   requirement as the web repo — see this project's `AGENTS.md` for the full text.
 
+## 2026-08-28 — Claude (Windows) extended the design pass to properties, and bumped Node to 24
+
+- **Environment**: Node upgraded 21.6.2 → 24.19.0 (Active LTS as of this date; 22 moved to
+  Maintenance LTS in Oct 2025) via `winget install OpenJS.NodeJS.LTS`, replacing the prior direct
+  MSI install. Expo SDK 57 requires ≥22.13.x per its own docs, so this is comfortably above floor.
+- **Resolved the "known inconsistency" flagged in the entry below**: the Properties tab list
+  (`(tabs)/properties.tsx`) and the Add Property form (`properties/new.tsx`) were still on the old
+  blue (`#1565c0`) accent from before the dashboard/login design pass. Both are now on the same
+  deep teal-green (`#16302b`) / teal (`#2f8a75`) / orange (`#d9601f`) / blue (`#1f6fd9`) palette as
+  the dashboard, mocked up with the `visualize` tool across several iterations (icon-badge stat
+  tiles, then square tiles, then the taller icon+trend+divider+"View all" tile style; photo-style
+  property cards with an icon-tile placeholder, "Active" badge, and Units/Tenants stat pills;
+  simplified header — back button inline with the title, no extra grid button) before writing code,
+  same workflow as the earlier dashboard/login pass. Login's header gradient was also corrected from
+  its original blue to the same dark green, which had been missed earlier.
+- **Add Property form redesigned to match**: icon-prefixed fields, and the property-type picker
+  changed from plain text chips to a 2-column icon grid (color/icon chosen by keyword-matching the
+  type name — condo/duplex/mobile/town/apartment each get a distinct tint from the same palette).
+- **Two real bugs found and fixed during this pass**:
+  - `properties/new` had a duplicate header — the root `_layout.tsx` `Stack.Screen` still had
+    `headerShown: true, title: "Add property"` from before the screen had its own in-content header,
+    so Expo Router's native stack header was rendering on top of the custom one. Removed the
+    now-redundant `headerShown`/`title` options (`presentation: "modal"` stays).
+  - Property type names come back from the backend as unspaced PascalCase (`SingleFamilyHouse`,
+    `MobileHome`) — both the properties list badges and the add-property type grid now run them
+    through a small `formatPropertyType` regex helper (`([a-z0-9])([A-Z])` → insert a space) before
+    display. (Duplicated in both files for now rather than shared — small enough that it wasn't
+    worth introducing a shared lib module for two call sites.)
+- **Known placeholders, not real data yet** (flagged in-code with comments, same pattern as the
+  dashboard's existing occupancy placeholder): every property card's "Active" badge is hardcoded
+  (no property-status field exists in the backend model yet), and the "Tenants" stat pill is
+  hardcoded to `0` (no tenant-to-unit relationship exists yet either). The three stat-tile
+  "View all" links and the search filter button are visual-only (`comingSoon()` alert), since none
+  of Units, Cities, or filtering have dedicated screens/logic yet.
+- **Still not brought up to the new palette**: `properties/[id]/index.tsx` (property detail) and
+  `properties/[id]/units/new.tsx` (add unit) — this pass covered the list and add-property screens
+  only, not asked for further yet.
+- Verified in the web preview (`npx expo start --web`) after every change — screenshots of
+  properties list and add-property, zero new console errors (the only console errors present are
+  the pre-existing CORS block on `POST /api/auth/login` from `localhost:8081` and the follow-on 401s,
+  unrelated to this session's changes, not investigated further here).
+- **Next step**: bring `properties/[id]/index.tsx` and `properties/[id]/units/new.tsx` onto the same
+  palette/component patterns (icon tiles, stat pills, simplified header) to finish the properties
+  area; then decide on tenants (still a stub) as the next real feature, per the prior entry.
+
 ## 2026-08-28 — Claude (Windows) built out the mobile app's first real feature set
 
 - New project this session — `npx create-expo-app` scaffold (Expo SDK 57, Expo Router, TypeScript),

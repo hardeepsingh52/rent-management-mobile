@@ -1,8 +1,8 @@
+import { AnimatedSplashOverlay } from "@/components/animated-icon";
+import { SessionProvider, useSessionContext } from "@/lib/session-context";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useColorScheme } from "react-native";
-import { AnimatedSplashOverlay } from "@/components/animated-icon";
-import { SessionProvider, useSessionContext } from "@/lib/session-context";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -42,8 +42,6 @@ function RootNavigation() {
           <Stack.Screen
             name="properties/new"
             options={{
-              headerShown: true,
-              title: "Add property",
               presentation: "modal",
             }}
           />
