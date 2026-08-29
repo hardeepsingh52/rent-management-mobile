@@ -2,6 +2,7 @@ import { getMyProperties } from "@/lib/properties-api";
 import { useSession } from "@/lib/session-context";
 import type { Property } from "@/lib/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
@@ -22,27 +23,6 @@ function comingSoon(feature: string) {
 
 function formatPropertyType(type: string): string {
   return type.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
-}
-
-type PropertyVisual = {
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
-  tint: string;
-  accent: string;
-};
-
-function getPropertyVisual(propertyType: string): PropertyVisual {
-  const type = propertyType.toLowerCase();
-  if (
-    type.includes("apartment") ||
-    type.includes("condo") ||
-    type.includes("town")
-  ) {
-    return { icon: "office-building", tint: "#e3f0fc", accent: "#1f6fd9" };
-  }
-  if (type.includes("mobile")) {
-    return { icon: "home-variant-outline", tint: "#dff5f2", accent: "#2f8a75" };
-  }
-  return { icon: "home-city-outline", tint: "#fdece0", accent: "#d9601f" };
 }
 
 export default function PropertiesScreen() {
@@ -110,121 +90,32 @@ export default function PropertiesScreen() {
 
             {properties !== null && properties.length > 0 && (
               <View style={styles.statsRow}>
-                <View style={[styles.statCard, { backgroundColor: "#dff5f2" }]}>
-                  <View style={styles.statTop}>
-                    <View style={styles.statIcon}>
-                      <MaterialCommunityIcons
-                        name="home-outline"
-                        size={16}
-                        color="#0f4a42"
-                      />
-                    </View>
-                    <View style={styles.statTrend}>
-                      <MaterialCommunityIcons
-                        name="trending-up"
-                        size={12}
-                        color="#2f8a75"
-                      />
-                    </View>
-                  </View>
-                  <Text style={[styles.statValue, { color: "#0f4a42" }]}>
-                    {properties.length}
-                  </Text>
-                  <Text style={[styles.statLabel, { color: "#0f4a42" }]}>
-                    Properties
-                  </Text>
-                  <View style={styles.statDivider} />
-                  <Pressable
-                    style={styles.statLink}
-                    onPress={() => comingSoon("This view")}
-                  >
-                    <Text style={[styles.statLinkText, { color: "#2f8a75" }]}>
-                      View all
-                    </Text>
-                    <MaterialCommunityIcons
-                      name="chevron-right"
-                      size={12}
-                      color="#2f8a75"
-                    />
-                  </Pressable>
+                <View style={styles.statTile}>
+                  <MaterialCommunityIcons
+                    name="home-outline"
+                    size={18}
+                    color="#d9601f"
+                  />
+                  <Text style={styles.statValue}>{properties.length}</Text>
+                  <Text style={styles.statLabel}>Properties</Text>
                 </View>
-
-                <View style={[styles.statCard, { backgroundColor: "#fdece0" }]}>
-                  <View style={styles.statTop}>
-                    <View style={styles.statIcon}>
-                      <MaterialCommunityIcons
-                        name="door"
-                        size={16}
-                        color="#8a3d10"
-                      />
-                    </View>
-                    <View style={styles.statTrend}>
-                      <MaterialCommunityIcons
-                        name="trending-up"
-                        size={12}
-                        color="#d9601f"
-                      />
-                    </View>
-                  </View>
-                  <Text style={[styles.statValue, { color: "#8a3d10" }]}>
-                    {totalUnits}
-                  </Text>
-                  <Text style={[styles.statLabel, { color: "#8a3d10" }]}>
-                    Units
-                  </Text>
-                  <View style={styles.statDivider} />
-                  <Pressable
-                    style={styles.statLink}
-                    onPress={() => comingSoon("Units")}
-                  >
-                    <Text style={[styles.statLinkText, { color: "#d9601f" }]}>
-                      View all
-                    </Text>
-                    <MaterialCommunityIcons
-                      name="chevron-right"
-                      size={12}
-                      color="#d9601f"
-                    />
-                  </Pressable>
+                <View style={styles.statTile}>
+                  <MaterialCommunityIcons
+                    name="door"
+                    size={18}
+                    color="#d9601f"
+                  />
+                  <Text style={styles.statValue}>{totalUnits}</Text>
+                  <Text style={styles.statLabel}>Units</Text>
                 </View>
-
-                <View style={[styles.statCard, { backgroundColor: "#e3f0fc" }]}>
-                  <View style={styles.statTop}>
-                    <View style={styles.statIcon}>
-                      <MaterialCommunityIcons
-                        name="map-marker-outline"
-                        size={16}
-                        color="#1f6fd9"
-                      />
-                    </View>
-                    <View style={styles.statTrend}>
-                      <MaterialCommunityIcons
-                        name="trending-up"
-                        size={12}
-                        color="#1f6fd9"
-                      />
-                    </View>
-                  </View>
-                  <Text style={[styles.statValue, { color: "#1f6fd9" }]}>
-                    {totalCities}
-                  </Text>
-                  <Text style={[styles.statLabel, { color: "#1f6fd9" }]}>
-                    Cities
-                  </Text>
-                  <View style={styles.statDivider} />
-                  <Pressable
-                    style={styles.statLink}
-                    onPress={() => comingSoon("Cities")}
-                  >
-                    <Text style={[styles.statLinkText, { color: "#1f6fd9" }]}>
-                      View all
-                    </Text>
-                    <MaterialCommunityIcons
-                      name="chevron-right"
-                      size={12}
-                      color="#1f6fd9"
-                    />
-                  </Pressable>
+                <View style={styles.statTile}>
+                  <MaterialCommunityIcons
+                    name="map-marker-outline"
+                    size={18}
+                    color="#d9601f"
+                  />
+                  <Text style={styles.statValue}>{totalCities}</Text>
+                  <Text style={styles.statLabel}>Cities</Text>
                 </View>
               </View>
             )}
@@ -274,97 +165,71 @@ export default function PropertiesScreen() {
               )}
           </View>
         }
-        renderItem={({ item }) => {
-          const visual = getPropertyVisual(item.propertyType);
-          return (
-            <Pressable
-              style={styles.card}
-              onPress={() =>
-                router.push({
-                  pathname: "/properties/[id]",
-                  params: { id: String(item.id) },
-                })
-              }
-            >
-              <View style={styles.cardTop}>
-                <View style={[styles.photo, { backgroundColor: visual.tint }]}>
-                  <MaterialCommunityIcons
-                    name={visual.icon}
-                    size={24}
-                    color={visual.accent}
-                  />
-                  {/* No property status tracked yet, so every card shows Active. */}
-                  <View style={styles.activeBadge}>
-                    <Text style={styles.activeBadgeText}>Active</Text>
-                  </View>
-                </View>
-                <View style={styles.cardInfo}>
-                  <View style={styles.cardNameRow}>
-                    <Text style={styles.cardName}>{item.name}</Text>
-                    <MaterialCommunityIcons
-                      name="dots-vertical"
-                      size={16}
-                      color="#8a8fa8"
-                    />
-                  </View>
-                  <View style={styles.cardMetaRow}>
-                    <View style={styles.cardCityRow}>
-                      <MaterialCommunityIcons
-                        name="map-marker-outline"
-                        size={11}
-                        color="#8a8fa8"
-                      />
-                      <Text style={styles.cardCity}>{item.city}</Text>
-                    </View>
-                    <View
-                      style={[styles.badge, { backgroundColor: visual.tint }]}
-                    >
-                      <Text
-                        style={[styles.badgeText, { color: visual.accent }]}
-                      >
-                        {formatPropertyType(item.propertyType)}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-              <View style={styles.cardStatsRow}>
-                <View style={[styles.pill, { backgroundColor: "#dff5f2" }]}>
-                  <MaterialCommunityIcons
-                    name="home-outline"
-                    size={13}
-                    color="#0f4a42"
-                  />
-                  <View>
-                    <Text style={styles.pillValue}>{item.units.length}</Text>
-                    <Text style={[styles.pillLabel, { color: "#0f4a42" }]}>
-                      Units
-                    </Text>
-                  </View>
-                </View>
-                <View style={[styles.pill, { backgroundColor: "#fdece0" }]}>
-                  <MaterialCommunityIcons
-                    name="account-multiple-outline"
-                    size={13}
-                    color="#8a3d10"
-                  />
-                  <View>
-                    {/* No tenant data tracked yet, so this is always 0. */}
-                    <Text style={styles.pillValue}>0</Text>
-                    <Text style={[styles.pillLabel, { color: "#8a3d10" }]}>
-                      Tenants
-                    </Text>
-                  </View>
-                </View>
-                <MaterialCommunityIcons
-                  name="chevron-right"
-                  size={20}
-                  color="#c7cad9"
+        renderItem={({ item }) => (
+          <Pressable
+            style={styles.card}
+            onPress={() =>
+              router.push({
+                pathname: "/properties/[id]",
+                params: { id: String(item.id) },
+              })
+            }
+          >
+            <View style={styles.cardTop}>
+              <View style={styles.photoWrap}>
+                {/* No property-photo feature exists in the backend yet, so
+                    every property uses the same placeholder image. */}
+                <Image
+                  source={require("@/assets/images/property-placeholder.jpg")}
+                  style={styles.photo}
+                  contentFit="cover"
                 />
+                <View style={styles.typeBadge}>
+                  <Text style={styles.typeBadgeText} numberOfLines={1}>
+                    {formatPropertyType(item.propertyType)}
+                  </Text>
+                </View>
               </View>
-            </Pressable>
-          );
-        }}
+              <View style={styles.cardInfo}>
+                <Text style={styles.cardName} numberOfLines={1}>
+                  {item.name}
+                </Text>
+                <View style={styles.cardCityRow}>
+                  <MaterialCommunityIcons
+                    name="map-marker-outline"
+                    size={11}
+                    color="#8a8fa8"
+                  />
+                  <Text style={styles.cardCity}>{item.city}</Text>
+                </View>
+              </View>
+            </View>
+            <View style={styles.cardStatsRow}>
+              <View style={styles.pill}>
+                <MaterialCommunityIcons
+                  name="door"
+                  size={13}
+                  color="#d9601f"
+                />
+                <Text style={styles.pillText}>{item.units.length} Units</Text>
+              </View>
+              <View style={styles.pill}>
+                <MaterialCommunityIcons
+                  name="account-multiple-outline"
+                  size={13}
+                  color="#d9601f"
+                />
+                {/* No tenant data tracked yet, so this is always 0. */}
+                <Text style={styles.pillText}>0 Tenants</Text>
+              </View>
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={20}
+                color="#c7cad9"
+              />
+            </View>
+          </Pressable>
+        )}
         ListFooterComponent={
           properties !== null && properties.length > 0 ? (
             <Pressable
@@ -398,34 +263,19 @@ const styles = StyleSheet.create({
   title: { fontSize: 20, fontWeight: "700", color: "#16302b" },
   subtitle: { fontSize: 12, color: "#8a8fa8", marginTop: 4, marginLeft: 44 },
   statsRow: { flexDirection: "row", gap: 8, marginTop: 16 },
-  statCard: { flex: 1, borderRadius: 16, padding: 12 },
-  statTop: { flexDirection: "row", justifyContent: "space-between" },
-  statIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+  statTile: {
+    flex: 1,
     backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
+    borderRadius: 14,
+    padding: 12,
   },
-  statTrend: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    backgroundColor: "rgba(255,255,255,0.6)",
-    alignItems: "center",
-    justifyContent: "center",
+  statValue: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#16302b",
+    marginTop: 8,
   },
-  statValue: { fontSize: 18, fontWeight: "700", marginTop: 10 },
-  statLabel: { fontSize: 10, marginTop: 1 },
-  statDivider: {
-    height: 1,
-    backgroundColor: "rgba(0,0,0,0.08)",
-    marginTop: 10,
-    marginBottom: 8,
-  },
-  statLink: { flexDirection: "row", alignItems: "center", gap: 2 },
-  statLinkText: { fontSize: 10, fontWeight: "600" },
+  statLabel: { fontSize: 10, color: "#8a8fa8", marginTop: 1 },
   searchRow: { flexDirection: "row", gap: 8, marginTop: 16 },
   search: {
     flex: 1,
@@ -433,14 +283,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     backgroundColor: "#fff",
-    borderRadius: 12,
-    paddingHorizontal: 12,
+    borderRadius: 16,
+    paddingHorizontal: 14,
   },
-  searchInput: { flex: 1, paddingVertical: 10, fontSize: 13 },
+  searchInput: { flex: 1, paddingVertical: 12, fontSize: 13 },
   filterButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 42,
+    height: 42,
+    borderRadius: 16,
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
@@ -454,46 +304,29 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 12,
   },
-  cardTop: { flexDirection: "row", gap: 12 },
-  photo: {
-    width: 64,
-    height: 64,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  activeBadge: {
+  cardTop: { flexDirection: "row", gap: 12, alignItems: "center" },
+  photoWrap: { position: "relative" },
+  photo: { width: 72, height: 72, borderRadius: 12 },
+  typeBadge: {
     position: "absolute",
-    top: 5,
     left: 5,
-    backgroundColor: "#16302b",
-    borderRadius: 20,
+    bottom: 5,
+    right: 5,
+    backgroundColor: "rgba(22, 48, 43, 0.85)",
+    borderRadius: 8,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
-  activeBadgeText: { fontSize: 8, fontWeight: "600", color: "#fff" },
-  cardInfo: { flex: 1, minWidth: 0, justifyContent: "center" },
-  cardNameRow: {
+  typeBadgeText: { fontSize: 8, fontWeight: "600", color: "#fff" },
+  cardInfo: { flex: 1, minWidth: 0 },
+  cardName: { fontSize: 14, fontWeight: "700", color: "#16302b" },
+  cardCityRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  cardName: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#16302b",
-    flexShrink: 1,
-  },
-  cardMetaRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    gap: 3,
     marginTop: 4,
   },
-  cardCityRow: { flexDirection: "row", alignItems: "center", gap: 3 },
-  cardCity: { fontSize: 10, color: "#8a8fa8" },
-  badge: { borderRadius: 20, paddingHorizontal: 7, paddingVertical: 2 },
-  badgeText: { fontSize: 9, fontWeight: "600" },
+  cardCity: { fontSize: 11, color: "#8a8fa8" },
   cardStatsRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -505,22 +338,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    backgroundColor: "#f5f6fa",
     borderRadius: 10,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 8,
   },
-  pillValue: { fontSize: 11, fontWeight: "700", color: "#16302b" },
-  pillLabel: { fontSize: 8 },
+  pillText: { fontSize: 11, fontWeight: "600", color: "#16302b" },
   addButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#16302b",
-    borderRadius: 16,
-    paddingVertical: 13,
+    backgroundColor: "#d9601f",
+    borderRadius: 28,
+    paddingVertical: 15,
     marginHorizontal: 20,
     marginTop: 16,
   },
-  addButtonText: { fontSize: 12, fontWeight: "600", color: "#fff" },
+  addButtonText: { fontSize: 13, fontWeight: "700", color: "#fff" },
 });

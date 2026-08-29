@@ -26,6 +26,40 @@ lives there rather than being duplicated here.
 - **Canadian & Provincial Tenancy Law Compliance (Federal, Ontario, Manitoba)**: same standing
   requirement as the web repo — see this project's `AGENTS.md` for the full text.
 
+## 2026-08-29 — Claude (Mac) brought the Properties list screen onto the new design language
+
+- Mocked up the change with the `visualize` tool first (single-accent stat tiles, photo-style
+  property cards with a quiet type badge) and got it approved before writing code, same workflow as
+  every design pass this project has used.
+- **Properties tab list** (`(tabs)/properties.tsx`): the 3-stat row went from pastel teal/orange/blue
+  cards with trend icons and non-functional "View all" links to plain white tiles with a single
+  orange icon, matching the dashboard's stat tiles. Property cards now use the real
+  `property-placeholder.jpg` photo (same one property detail already uses) instead of a colored
+  icon-tile, with the property type shown as a quiet dark badge overlaid on the photo. **Removed two
+  fake/dead UI elements** while there: the hardcoded "Active" badge (no property-status field exists
+  in the backend) and the `⋮` menu icon, which had no `onPress` handler at all — it did nothing.
+  Units/Tenants stat pills went from two different tint colors to one consistent style. "Add new
+  property" button changed from dark green to orange to match the primary-action convention every
+  other screen now uses.
+- Caught and reverted an unrelated accidental edit in `properties/[id]/index.tsx` before committing
+  (`content` padding had been changed from 18 to 60, which misaligned the body with the header and
+  cut off the unit list — confirmed with the user it wasn't intentional).
+- **Property detail screen** (`properties/[id]/index.tsx`) picked up two more fixes while working in
+  the same area: the screen wasn't wrapped in `SafeAreaView` at all (unlike every other top-level
+  screen), so its custom header relied on a guessed fixed `paddingTop` instead of the actual
+  device/browser notch inset — now wrapped in `SafeAreaView edges={["top"]}` like the rest of the
+  app. Also added a dashed-border "+ Add Unit" card at the end of the horizontal unit-card list
+  (always rendered now, even with zero units) — previously the only way in was the small unlabeled
+  "+" icon in the header, easy to miss.
+- Mid-session note for whoever picks this up: while iterating on this file, a couple of hand-typed
+  edits landed a stray `</SafeAreaView>` closing tag in the wrong place (inside an `onPress` handler),
+  which broke the build with a cascade of TS1005/TS17008 syntax errors. Resolved by replacing the
+  whole file rather than patching around it. Nothing left over from that — just noting it in case the
+  git history looks choppy around this file.
+- Verified in the web preview: real backend data, zero new console errors, `npx tsc --noEmit` clean.
+- **Next step**: same as before — Tenants tab, Profile tab, and Forgot Password are the only screens
+  left on old/default styling.
+
 ## 2026-08-29 — Claude (Mac) rebrand to DomusPRO + full design pass on the remaining screens
 
 - **Rebrand**: app renamed `rent-management-mobile` → **DomusPRO** in `app.json` (`expo.name`), new

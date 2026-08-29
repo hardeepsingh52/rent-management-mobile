@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { Image } from "expo-image";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
   Alert,
@@ -81,7 +82,7 @@ export default function PropertyDetailScreen() {
     .join(", ");
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
         <Pressable style={styles.iconButton} onPress={() => router.back()}>
           <MaterialCommunityIcons
@@ -170,38 +171,45 @@ export default function PropertyDetailScreen() {
           <Text style={styles.sectionTitle}>List of Units</Text>
           <Text style={styles.unitsCount}>{property.units.length} Units</Text>
         </View>
-
-        {property.units.length === 0 ? (
-          <Text style={styles.empty}>No units yet.</Text>
-        ) : (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.unitsRow}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.unitsRow}
+        >
+          {property.units.map((unit: Unit) => (
+            <View key={unit.id} style={styles.unitCard}>
+              <Text style={styles.unitLabel}>{unit.label}</Text>
+              <Text
+                style={[
+                  styles.unitStatus,
+                  { color: unitStatusTint(unit.status) },
+                ]}
+              >
+                {unit.status}
+              </Text>
+            </View>
+          ))}
+          <Pressable
+            style={styles.addUnitCard}
+            onPress={() =>
+              router.push({
+                pathname: "/properties/[id]/units/new",
+                params: { id },
+              })
+            }
           >
-            {property.units.map((unit: Unit) => (
-              <View key={unit.id} style={styles.unitCard}>
-                <Text style={styles.unitLabel}>{unit.label}</Text>
-                <Text
-                  style={[
-                    styles.unitStatus,
-                    { color: unitStatusTint(unit.status) },
-                  ]}
-                >
-                  {unit.status}
-                </Text>
-              </View>
-            ))}
-          </ScrollView>
-        )}
+            <MaterialCommunityIcons name="plus" size={18} color="#d9601f" />
+            <Text style={styles.addUnitCardText}>Add Unit</Text>
+          </Pressable>
+        </ScrollView>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f5f6fa" },
-  content: { padding: 18, paddingBottom: 40 },
+  content: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 40 },
   centered: {
     flex: 1,
     alignItems: "center",
@@ -214,7 +222,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 18,
-    paddingTop: 18,
+    paddingTop: 30,
     paddingBottom: 12,
   },
   iconButton: {
@@ -296,6 +304,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     minWidth: 84,
   },
+    addUnitCard: {
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    minWidth: 84,
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderColor: "#d9601f",
+  },
+  addUnitCardText: { fontSize: 11, fontWeight: "600", color: "#d9601f" },
   unitLabel: { fontSize: 14, fontWeight: "700", color: "#16302b" },
   unitStatus: { fontSize: 10, fontWeight: "600", marginTop: 4 },
 });
