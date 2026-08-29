@@ -26,6 +26,83 @@ lives there rather than being duplicated here.
 - **Canadian & Provincial Tenancy Law Compliance (Federal, Ontario, Manitoba)**: same standing
   requirement as the web repo — see this project's `AGENTS.md` for the full text.
 
+## 2026-08-29 — Claude (Mac) rebrand to DomusPRO + full design pass on the remaining screens
+
+- **Rebrand**: app renamed `rent-management-mobile` → **DomusPRO** in `app.json` (`expo.name`), new
+  icon/adaptive-icon/splash all point at a new logo mark (`assets/images/app-logo-symbol-2.png`),
+  splash background changed to the brand red `#FF3131`, iOS `bundleIdentifier` set
+  (`com.anonymous.rent-management-mobile`), Android biometric permissions
+  (`USE_BIOMETRIC`/`USE_FINGERPRINT`) added explicitly, and `npm run android`/`npm run ios` switched
+  from `expo start --android/--ios` (Expo Go) to `expo run:android`/`expo run:ios` (builds this
+  project's own dev client) — done directly by the user, not this session, but included in this
+  commit since it landed in the same working tree.
+- **New onboarding screen** (`(auth)/onboarding.tsx`): full-bleed photo with a rounded card
+  overlapping the bottom (headline, subtitle, red `#ff3131` "Get Started" pill button sampled
+  directly from the DomousPRO logo's red). Registered as the first screen in the unauthenticated
+  `Stack.Protected` group in `_layout.tsx` so it's what a logged-out user sees first; "Get Started"
+  `router.replace`s to `/login` (replace, not push, so back-navigation can't return to onboarding).
+- **Login redesigned**: dropped the old dark-green gradient header entirely for a flat white
+  layout — centered `DomousPRO` logotype, "Log In" heading, icon-prefixed pill inputs, "Forgot
+  password?" inline with the Password label instead of below the field, full-pill orange submit
+  button. No landlord/tenant role selector (app is landlord-only).
+- **Dashboard rebuilt** to match a reference design: avatar-first header (dropped the old hamburger
+  menu), 2×2 "Property Summary" stat grid (Properties / Occupied / Rent Collected / Maint. Request),
+  an "Occupancy Rates" bar chart, and a "Recent Activity" section — kept the existing "My
+  Properties" list and "Quick Actions" grid below since they're real wired-up features the reference
+  screenshot just didn't happen to show. Where the reference implied data that doesn't exist in the
+  backend yet, went with honest placeholders over fabricated ones, flagged in code: **Rent
+  Collected shows `—`** (no rent-tracking backend at all), **Maint. Request shows `0`** (no
+  maintenance-request feature exists), and **Recent Activity shows "No recent activity yet"**
+  instead of inventing a fake "Jane Doe paid rent" line — a real landlord's own dashboard shouldn't
+  show a transaction that didn't happen. Occupied and the chart reuse the same "fully occupied"
+  placeholder logic the dashboard already had. The header's "+" now actually opens Add Property.
+- **Property detail screen** (`properties/[id]/index.tsx`) brought up from completely unstyled
+  (plain list, blue `#1565c0` accent, no header) to match the new design: custom header (back +
+  name + add-unit), property photo with a property-type badge overlaid, address + a decorative
+  "Monthly" pill, a Summary 2×2 grid (Rent Collected/Rent Due `—`, Occupied % placeholder, Open
+  Request `0`, same honesty reasoning as the dashboard), and a horizontally-scrollable unit list.
+  This screen is intentionally **outside** the tab navigator (root-level route, per the existing
+  documented reasoning below about shared back-navigation), so unlike the reference mock, the
+  floating tab bar does not show on this screen — not changed, since altering that would undo a
+  previously deliberate fix.
+- **Add Property and Add Unit forms redesigned again** — the properties list/add-property pass from
+  2026-08-28 used a different accent color per property type (teal/purple/blue/orange), which meant
+  memorizing an arbitrary color-to-type mapping. Replaced with **one accent (orange), only shown on
+  the selected tile** — plain gray icon otherwise — on both the property-type grid and the new
+  unit-type grid on Add Unit (which was previously fully unstyled: default blue chips, bordered
+  inputs, no header at all, relying on the native modal header). Both forms now share the same
+  field style (white pill, gray icon, no colored badge) and the same Cancel/primary orange pill
+  button pair.
+- **Real bug found and fixed: dark-theme background bleeding through the floating tab bar.**
+  `_layout.tsx` was switching between React Navigation's `DarkTheme`/`DefaultTheme` based on
+  `useColorScheme()`, but no screen in this app has actual dark-mode styling — every screen
+  hardcodes light colors. On a device/browser in dark mode, `DarkTheme.colors.background` (black)
+  showed through the tab bar's reserved bottom padding (`app-tabs.tsx`'s `TabSlot` has
+  `paddingBottom: 90` that no screen content covers). Fixed by dropping `DarkTheme`/`useColorScheme`
+  and hardcoding `ThemeProvider value={DefaultTheme}` until the app actually gets dark-mode
+  support. Also gave that same reserved padding an explicit `backgroundColor: "#f5f6fa"` (matches
+  every screen's own background) so the tab bar reads as just a floating shadowed pill with no
+  visible box behind it, and swapped the tab bar's deprecated `shadowColor`/`shadowOpacity`/
+  `shadowRadius`/`shadowOffset` (silently broken on web, rendered as a hard black edge instead of a
+  soft shadow) for the cross-platform `boxShadow` style.
+- **Real bug found and fixed: login never actually worked.** There was no `.env` file at all in this
+  repo, so `EXPO_PUBLIC_BACKEND_API_URL` was `undefined` and every backend call was silently going to
+  a broken URL. Found the real value in the sibling `rent-manager-frontend` repo's own `.env.local`
+  (same Azure backend both apps use) and created `rent-management-mobile/.env.local` with just
+  `EXPO_PUBLIC_BACKEND_API_URL` (not the web repo's unrelated `SESSION_SECRET`). **This file is
+  gitignored and not committed** — anyone pulling this repo fresh (new machine, new agent) needs to
+  recreate it with the same value before login will work. Verified end-to-end after: invalid
+  credentials correctly show "Invalid email or password" from the real backend, and valid login
+  reaches the real dashboard with real property/unit data.
+- Verified every change in the web preview (`npx expo start --web`) — screenshots of every screen,
+  real backend calls with a real logged-in session (not mocked), zero new console errors, `npx tsc
+  --noEmit` clean after each step. Deleted `assets/images/onboarding-hero.jpg`, a stock photo this
+  session downloaded as a first-pass placeholder before the user swapped in their own onboarding
+  photo (`app-onboarding-picture.jpg`) — confirmed zero references before removing it.
+- **Next step**: Tenants tab, Profile tab, and the Forgot Password screen are the only remaining
+  screens still on old/default styling — not brought into the new design language this session since
+  they weren't part of what was asked. Tenants tab is still a stub (per the 2026-08-28 entry).
+
 ## 2026-08-28 — Claude (Windows) extended the design pass to properties, and bumped Node to 24
 
 - **Environment**: Node upgraded 21.6.2 → 24.19.0 (Active LTS as of this date; 22 moved to

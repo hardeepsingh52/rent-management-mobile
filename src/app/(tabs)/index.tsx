@@ -36,6 +36,18 @@ function propertyOccupancy(property: Property): number {
   return property.units.length > 0 ? 100 : 0;
 }
 
+// Decorative bar heights for the Occupancy Rates chart — there's no historical
+// occupancy time series in the backend yet, so this isn't real month-over-month
+// data, just a placeholder shape matching the design until that exists.
+const OCCUPANCY_CHART_BARS = [
+  { month: "Feb", height: 58 },
+  { month: "Mar", height: 96 },
+  { month: "Apr", height: 78 },
+  { month: "May", height: 108 },
+  { month: "Jun", height: 90 },
+  { month: "Jul", height: 118 },
+];
+
 export default function DashboardScreen() {
   const user = useSession();
   const router = useRouter();
@@ -68,7 +80,12 @@ export default function DashboardScreen() {
   }
 
   const totalProperties = properties?.length ?? 0;
-  const occupancyPct = totalProperties > 0 ? 100 : 0;
+  const totalUnits = (properties ?? []).reduce(
+    (sum, p) => sum + p.units.length,
+    0,
+  );
+  // Placeholder, same reasoning as propertyOccupancy: no vacancy tracking yet.
+  const occupiedUnits = totalUnits;
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -81,19 +98,28 @@ export default function DashboardScreen() {
         ListHeaderComponent={
           <View>
             <View style={styles.header}>
-              <Pressable onPress={() => comingSoon("The menu")}>
-                <MaterialCommunityIcons name="menu" size={26} color="#16302b" />
-              </Pressable>
-              <View style={styles.headerCenter}>
-                <Text style={styles.greeting}>Welcome back,</Text>
-                <Text style={styles.name}>{user.fullName} 👋</Text>
-                <Text style={styles.subtitle}>
-                  Here&apos;s what&apos;s happening today
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {getInitials(user.fullName)}
                 </Text>
+              </View>
+              <View style={styles.headerCenter}>
+                <Text style={styles.name}>{user.fullName}</Text>
+                <Text style={styles.role}>{user.role}</Text>
               </View>
               <View style={styles.headerRight}>
                 <Pressable
-                  style={styles.bellButton}
+                  style={styles.iconButton}
+                  onPress={() => router.push("/properties/new")}
+                >
+                  <MaterialCommunityIcons
+                    name="plus"
+                    size={20}
+                    color="#16302b"
+                  />
+                </Pressable>
+                <Pressable
+                  style={styles.iconButton}
                   onPress={() => comingSoon("Notifications")}
                 >
                   <MaterialCommunityIcons
@@ -103,93 +129,92 @@ export default function DashboardScreen() {
                   />
                   <View style={styles.bellDot} />
                 </Pressable>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {getInitials(user.fullName)}
-                  </Text>
-                </View>
               </View>
             </View>
 
-            <View style={styles.kpiRow}>
-              <View style={styles.kpiCard}>
-                <View style={styles.kpiTop}>
-                  <View style={styles.kpiIcon}>
-                    <MaterialCommunityIcons
-                      name="home-outline"
-                      size={18}
-                      color="#0f4a42"
-                    />
-                  </View>
-                  <Text style={styles.kpiLabel}>Total Properties</Text>
-                </View>
-                <Text style={styles.kpiValue}>{totalProperties}</Text>
-                <Pressable onPress={() => router.push("/properties")}>
-                  <Text style={styles.kpiLink}>View all →</Text>
-                </Pressable>
+            <Text style={styles.screenSectionTitle}>Property Summary</Text>
+            <View style={styles.statsGrid}>
+              <View style={styles.statTile}>
+                <MaterialCommunityIcons
+                  name="home-city-outline"
+                  size={20}
+                  color="#d9601f"
+                />
+                <Text style={styles.statLabel}>Properties</Text>
+                <Text style={styles.statValue}>{totalProperties}</Text>
               </View>
-
-              <View style={[styles.kpiCard, styles.kpiCardOccupancy]}>
-                <View style={styles.kpiTop}>
-                  <View style={[styles.kpiIcon, styles.kpiIconOccupancy]}>
-                    <MaterialCommunityIcons
-                      name="chart-donut"
-                      size={18}
-                      color="#8a3d10"
-                    />
-                  </View>
-                  <Text style={[styles.kpiLabel, styles.kpiLabelOccupancy]}>
-                    Occupancy Rate
-                  </Text>
-                </View>
-                <Text style={[styles.kpiValue, styles.kpiValueOccupancy]}>
-                  {occupancyPct}%
+              <View style={styles.statTile}>
+                <MaterialCommunityIcons
+                  name="door-open"
+                  size={20}
+                  color="#d9601f"
+                />
+                <Text style={styles.statLabel}>Occupied</Text>
+                <Text style={styles.statValue}>
+                  {occupiedUnits}
+                  <Text style={styles.statValueMuted}>/{totalUnits}</Text>
                 </Text>
-                <Text style={styles.kpiCaptionOccupancy}>
-                  {occupancyPct === 100
-                    ? "Fully occupied 🎉"
-                    : "Add units to track occupancy"}
-                </Text>
+              </View>
+              <View style={styles.statTile}>
+                <MaterialCommunityIcons
+                  name="cash-multiple"
+                  size={20}
+                  color="#d9601f"
+                />
+                <Text style={styles.statLabel}>Rent Collected</Text>
+                <Text style={styles.statValue}>—</Text>
+              </View>
+              <View style={styles.statTile}>
+                <MaterialCommunityIcons
+                  name="wrench-outline"
+                  size={20}
+                  color="#d9601f"
+                />
+                <Text style={styles.statLabel}>Maint. Request</Text>
+                <Text style={styles.statValue}>0</Text>
               </View>
             </View>
 
-            <View style={styles.revenueCard}>
-              <View style={styles.revenueLeft}>
-                <View style={styles.revenueIcon}>
-                  <MaterialCommunityIcons
-                    name="wallet-outline"
-                    size={20}
-                    color="#16302b"
-                  />
-                </View>
-                <Text style={styles.revenueLabel}>Revenue</Text>
-                <Text style={styles.revenueValue}>Not tracked yet</Text>
-                <Text style={styles.revenueDescription}>
-                  Track your income and grow your business.
-                </Text>
-              </View>
-              <View style={styles.revenueRight}>
+            <View style={styles.chartCard}>
+              <View style={styles.chartHeaderRow}>
+                <Text style={styles.sectionTitle}>Occupancy Rates</Text>
                 <Pressable
-                  style={styles.addRentButton}
-                  onPress={() => comingSoon("Add Rent")}
+                  style={styles.monthlyPill}
+                  onPress={() => comingSoon("Date range filter")}
                 >
-                  <Text style={styles.addRentButtonText}>Add Rent</Text>
-                </Pressable>
-                <View style={styles.revenueChart}>
+                  <Text style={styles.monthlyPillText}>Monthly</Text>
                   <MaterialCommunityIcons
-                    name="trending-up"
-                    size={16}
-                    color="rgba(255,255,255,0.5)"
+                    name="chevron-down"
+                    size={14}
+                    color="#5f5e5a"
                   />
-                  <View style={styles.revenueBars}>
-                    <View style={[styles.revenueBar, { height: 10 }]} />
-                    <View style={[styles.revenueBar, { height: 16 }]} />
-                    <View style={[styles.revenueBar, { height: 22 }]} />
-                    <View style={[styles.revenueBar, { height: 30 }]} />
-                  </View>
+                </Pressable>
+              </View>
+              <View style={styles.chartRow}>
+                <View style={styles.chartAxis}>
+                  <Text style={styles.chartAxisLabel}>100%</Text>
+                  <Text style={styles.chartAxisLabel}>70%</Text>
+                  <Text style={styles.chartAxisLabel}>50%</Text>
+                  <Text style={styles.chartAxisLabel}>10%</Text>
+                </View>
+                <View style={styles.chartBars}>
+                  {OCCUPANCY_CHART_BARS.map((bar) => (
+                    <View key={bar.month} style={styles.chartBarColumn}>
+                      <View style={[styles.chartBar, { height: bar.height }]} />
+                      <Text style={styles.chartBarLabel}>{bar.month}</Text>
+                    </View>
+                  ))}
                 </View>
               </View>
             </View>
+
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Recent Activity</Text>
+              <Pressable onPress={() => comingSoon("Activity history")}>
+                <Text style={styles.viewAllLink}>View all →</Text>
+              </Pressable>
+            </View>
+            <Text style={styles.empty}>No recent activity yet.</Text>
 
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>My Properties</Text>
@@ -363,17 +388,24 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: 18,
-    paddingTop: 6,
+    paddingTop: 12,
     paddingBottom: 18,
   },
-  headerCenter: { flex: 1, marginLeft: 14 },
-  greeting: { fontSize: 13, color: "#8a8fa8" },
-  name: { fontSize: 19, fontWeight: "700", color: "#16302b", marginTop: 2 },
-  subtitle: { fontSize: 12, color: "#8a8fa8", marginTop: 2 },
+  avatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#16302b",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: { fontSize: 14, fontWeight: "600", color: "#fff" },
+  headerCenter: { flex: 1, marginLeft: 12 },
+  name: { fontSize: 16, fontWeight: "700", color: "#16302b" },
+  role: { fontSize: 12, color: "#8a8fa8", marginTop: 2 },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 10 },
-  bellButton: {
+  iconButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -390,117 +422,64 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: "#f4793a",
   },
-  avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "#16302b",
-    alignItems: "center",
-    justifyContent: "center",
+  screenSectionTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#16302b",
+    paddingHorizontal: 18,
+    marginBottom: 12,
   },
-  avatarText: { fontSize: 14, fontWeight: "600", color: "#fff" },
-  kpiRow: {
+  statsGrid: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10,
     paddingHorizontal: 18,
+    marginBottom: 20,
   },
-  kpiCard: {
-    flex: 1,
-    backgroundColor: "#dff5f2",
+  statTile: {
+    width: "47%",
+    backgroundColor: "#fff",
     borderRadius: 16,
     padding: 14,
   },
-  kpiCardOccupancy: { backgroundColor: "#fdece0" },
-  kpiTop: { flexDirection: "row", alignItems: "center", gap: 8 },
-  kpiIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
+  statLabel: { fontSize: 11, color: "#8a8fa8", marginTop: 8 },
+  statValue: { fontSize: 20, fontWeight: "700", color: "#16302b", marginTop: 2 },
+  statValueMuted: { fontSize: 14, fontWeight: "500", color: "#b6b9c9" },
+  chartCard: {
     backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  kpiIconOccupancy: {},
-  kpiLabel: {
-    fontSize: 11,
-    fontWeight: "500",
-    color: "#0f4a42",
-    flexShrink: 1,
-  },
-  kpiLabelOccupancy: { color: "#8a3d10" },
-  kpiValue: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: "#0f4a42",
-    marginTop: 10,
-  },
-  kpiValueOccupancy: { color: "#8a3d10" },
-  kpiLink: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#2f8a75",
-    marginTop: 8,
-  },
-  kpiCaptionOccupancy: {
-    fontSize: 11,
-    color: "#8a3d10",
-    marginTop: 8,
-  },
-  revenueCard: {
-    backgroundColor: "#16302b",
     borderRadius: 16,
-    padding: 18,
+    padding: 16,
     marginHorizontal: 18,
-    marginTop: 14,
+    marginBottom: 20,
+  },
+  chartHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-  },
-  revenueLeft: { flex: 1, paddingRight: 10 },
-  revenueIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.12)",
     alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 10,
+    marginBottom: 16,
   },
-  revenueLabel: {
-    fontSize: 11,
-    fontWeight: "500",
-    color: "rgba(255,255,255,0.6)",
-  },
-  revenueValue: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#fff",
-    marginTop: 4,
-  },
-  revenueDescription: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.55)",
-    marginTop: 6,
-  },
-  revenueRight: { alignItems: "flex-end", justifyContent: "space-between" },
-  addRentButton: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-  },
-  addRentButtonText: { fontSize: 12, fontWeight: "700", color: "#16302b" },
-  revenueChart: { alignItems: "flex-end", marginTop: 14 },
-  revenueBars: {
+  monthlyPill: {
     flexDirection: "row",
+    alignItems: "center",
     gap: 4,
+    backgroundColor: "#f5f6fa",
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  monthlyPillText: { fontSize: 11, fontWeight: "600", color: "#5f5e5a" },
+  chartRow: { flexDirection: "row", alignItems: "flex-end", gap: 12 },
+  chartAxis: { justifyContent: "space-between", height: 120, marginBottom: 18 },
+  chartAxisLabel: { fontSize: 10, color: "#b6b9c9" },
+  chartBars: {
+    flex: 1,
+    flexDirection: "row",
     alignItems: "flex-end",
-    marginTop: 4,
+    justifyContent: "space-between",
   },
-  revenueBar: {
-    width: 6,
-    borderRadius: 3,
-    backgroundColor: "rgba(255,255,255,0.35)",
-  },
+  chartBarColumn: { alignItems: "center", gap: 6 },
+  chartBar: { width: 16, borderRadius: 6, backgroundColor: "#f4793a" },
+  chartBarLabel: { fontSize: 10, color: "#8a8fa8" },
   sectionHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",

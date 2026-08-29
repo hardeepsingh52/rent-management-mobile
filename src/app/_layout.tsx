@@ -1,8 +1,7 @@
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
 import { SessionProvider, useSessionContext } from "@/lib/session-context";
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
+import { DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useColorScheme } from "react-native";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -15,7 +14,6 @@ export default function RootLayout() {
 }
 
 function RootNavigation() {
-  const colorScheme = useColorScheme();
   const { user, loading } = useSessionContext();
 
   if (loading) {
@@ -23,10 +21,11 @@ function RootNavigation() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={DefaultTheme}>
       <AnimatedSplashOverlay />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Protected guard={!user}>
+          <Stack.Screen name="(auth)/onboarding" />
           <Stack.Screen name="(auth)/login" />
           <Stack.Screen
             name="(auth)/forgot-password"
@@ -37,7 +36,7 @@ function RootNavigation() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen
             name="properties/[id]"
-            options={{ headerShown: true, title: "Property" }}
+            options={{ headerShown: false, title: "Property" }}
           />
           <Stack.Screen
             name="properties/new"
@@ -45,13 +44,9 @@ function RootNavigation() {
               presentation: "modal",
             }}
           />
-          <Stack.Screen
+                 <Stack.Screen
             name="properties/[id]/units/new"
-            options={{
-              headerShown: true,
-              title: "Add unit",
-              presentation: "modal",
-            }}
+            options={{ headerShown: false, presentation: "modal" }}
           />
         </Stack.Protected>
       </Stack>

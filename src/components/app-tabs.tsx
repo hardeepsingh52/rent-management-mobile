@@ -13,7 +13,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 export default function AppTabs() {
   return (
     <Tabs>
-      <TabSlot style={{ flex: 1, paddingBottom: 90 }} />
+    <TabSlot style={{ flex: 1, paddingBottom: 90, backgroundColor: "#f5f6fa" }} />
       <TabList asChild>
         <FloatingTabBar>
           <TabTrigger name="dashboard" href="/" asChild>
@@ -74,7 +74,7 @@ function FloatingTabBar({ children, ...props }: TabListProps) {
 }
 
 const styles = StyleSheet.create({
-  island: {
+   island: {
     position: "absolute",
     left: 18,
     right: 18,
@@ -85,10 +85,7 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     paddingVertical: 10,
     paddingHorizontal: 8,
-    shadowColor: "#16302b",
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
+    boxShadow: "0px 6px 12px rgba(22, 48, 43, 0.15)",
     elevation: 6,
   },
   fabSpacer: { width: 52 },

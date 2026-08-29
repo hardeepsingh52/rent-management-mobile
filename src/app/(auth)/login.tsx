@@ -7,7 +7,7 @@ import {
 } from "@/lib/biometric-session";
 import { useSessionContext } from "@/lib/session-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
 import { Link, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -15,11 +15,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -93,152 +95,157 @@ export default function LoginScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <LinearGradient colors={["#16302b", "#0f4a42"]} style={styles.header}>
-        <View style={styles.headerIcon}>
-          <MaterialCommunityIcons
-            name="office-building"
-            size={26}
-            color="#fff"
-          />
-        </View>
-        <Text style={styles.title}>Welcome back</Text>
-        <Text style={styles.subtitle}>
-          Log in to manage your properties, tenants, and leases.
-        </Text>
-      </LinearGradient>
+    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.logoWrap}>
+            <Image
+              source={require("@/assets/images/domouspro-logo.png")}
+              style={styles.logo}
+              contentFit="contain"
+            />
+          </View>
 
-      <View style={styles.content}>
-        {error && <Text style={styles.error}>{error}</Text>}
+          <Text style={styles.title}>Log In</Text>
+          <Text style={styles.subtitle}>
+            Log in to manage your properties, tenants, and leases.
+          </Text>
 
-        <Text style={styles.label}>Email</Text>
-        <View style={styles.inputWrapper}>
-          <MaterialCommunityIcons
-            name="email-outline"
-            size={18}
-            color="#5f5e5a"
-          />
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
-            textContentType="emailAddress"
-            returnKeyType="next"
-            onSubmitEditing={() => passwordRef.current?.focus()}
-            editable={!loading}
-            placeholder="name@company.com"
-          />
-        </View>
+          {error && <Text style={styles.error}>{error}</Text>}
 
-        <Text style={styles.label}>Password</Text>
-        <View style={styles.inputWrapper}>
-          <MaterialCommunityIcons
-            name="lock-outline"
-            size={18}
-            color="#5f5e5a"
-          />
-          <TextInput
-            ref={passwordRef}
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPassword}
-            autoComplete="password"
-            textContentType="password"
-            returnKeyType="go"
-            onSubmitEditing={handleSubmit}
-            editable={!loading}
-          />
-          <Pressable onPress={() => setShowPassword((v) => !v)}>
+          <Text style={styles.label}>Email</Text>
+          <View style={styles.inputWrapper}>
             <MaterialCommunityIcons
-              name={showPassword ? "eye-off" : "eye"}
+              name="email-outline"
               size={18}
               color="#5f5e5a"
             />
-          </Pressable>
-        </View>
+            <TextInput
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoComplete="email"
+              textContentType="emailAddress"
+              returnKeyType="next"
+              onSubmitEditing={() => passwordRef.current?.focus()}
+              editable={!loading}
+              placeholder="name@company.com"
+            />
+          </View>
 
-        <Link href="/forgot-password" style={styles.forgotLink}>
-          Forgot password?
-        </Link>
-
-        <Pressable
-          style={styles.button}
-          onPress={handleSubmit}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Log in</Text>
-          )}
-        </Pressable>
-
-        {showBiometric && (
-          <>
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            <Pressable
-              style={styles.biometricButton}
-              onPress={handleBiometricLogin}
-              disabled={biometricLoading}
-            >
-              {biometricLoading ? (
-                <ActivityIndicator color="#2f8a75" />
-              ) : (
-                <>
-                  <MaterialCommunityIcons
-                    name="fingerprint"
-                    size={18}
-                    color="#2f8a75"
-                  />
-                  <Text style={styles.biometricButtonText}>
-                    Log in with Face ID
-                  </Text>
-                </>
-              )}
+          <View style={styles.passwordLabelRow}>
+            <Text style={styles.label}>Password</Text>
+            <Link href="/forgot-password" style={styles.forgotLink}>
+              Forgot password?
+            </Link>
+          </View>
+          <View style={styles.inputWrapper}>
+            <MaterialCommunityIcons
+              name="lock-outline"
+              size={18}
+              color="#5f5e5a"
+            />
+            <TextInput
+              ref={passwordRef}
+              style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              autoComplete="password"
+              textContentType="password"
+              returnKeyType="go"
+              onSubmitEditing={handleSubmit}
+              editable={!loading}
+            />
+            <Pressable onPress={() => setShowPassword((v) => !v)}>
+              <MaterialCommunityIcons
+                name={showPassword ? "eye-off" : "eye"}
+                size={18}
+                color="#5f5e5a"
+              />
             </Pressable>
-          </>
-        )}
-      </View>
-    </KeyboardAvoidingView>
+          </View>
+
+          <Pressable
+            style={styles.button}
+            onPress={handleSubmit}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <MaterialCommunityIcons
+                  name="login-variant"
+                  size={18}
+                  color="#fff"
+                />
+                <Text style={styles.buttonText}>Log in</Text>
+              </>
+            )}
+          </Pressable>
+
+          {showBiometric && (
+            <>
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <Pressable
+                style={styles.biometricButton}
+                onPress={handleBiometricLogin}
+                disabled={biometricLoading}
+              >
+                {biometricLoading ? (
+                  <ActivityIndicator color="#2f8a75" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons
+                      name="fingerprint"
+                      size={18}
+                      color="#2f8a75"
+                    />
+                    <Text style={styles.biometricButtonText}>
+                      Log in with Face ID
+                    </Text>
+                  </>
+                )}
+              </Pressable>
+            </>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f6fa" },
-  header: {
-    paddingTop: 56,
-    paddingBottom: 32,
+  container: { flex: 1, backgroundColor: "#fff" },
+  scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: 28,
+    paddingTop: 24,
+    paddingBottom: 32,
   },
-  headerIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-  title: { fontSize: 22, fontWeight: "600", color: "#fff" },
-  subtitle: { fontSize: 13, color: "rgba(255,255,255,0.75)", marginTop: 6 },
-  content: {
-    backgroundColor: "#fff",
-    marginHorizontal: 18,
-    marginTop: -24,
-    borderRadius: 24,
-    padding: 24,
+  logoWrap: { alignItems: "center", marginBottom: 28 },
+  logo: { width: 250, height: 125, borderRadius: 20 },
+  title: { fontSize: 26, fontWeight: "700", color: "#16302b" },
+  subtitle: {
+    fontSize: 13,
+    color: "#8a8fa8",
+    marginTop: 6,
+    marginBottom: 28,
+    lineHeight: 19,
   },
   error: {
     backgroundColor: "#fee2e2",
@@ -248,32 +255,39 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontSize: 14,
   },
-  label: { fontSize: 13, fontWeight: "600", color: "#16302b", marginBottom: 6 },
+  label: { fontSize: 13, fontWeight: "600", color: "#16302b" },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 12,
-    paddingHorizontal: 14,
+    backgroundColor: "#f5f6fa",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    marginTop: 8,
     marginBottom: 18,
   },
-  input: { flex: 1, paddingVertical: 13, fontSize: 14 },
-  forgotLink: {
-    textAlign: "right",
-    color: "#2f8a75",
-    fontSize: 12,
-    fontWeight: "500",
-    marginBottom: 20,
-  },
-  button: {
-    backgroundColor: "#16302b",
-    paddingVertical: 15,
-    borderRadius: 12,
+  input: { flex: 1, paddingVertical: 15, fontSize: 14 },
+  passwordLabelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
   },
-  buttonText: { color: "#fff", fontWeight: "500", fontSize: 15 },
+  forgotLink: {
+    color: "#2f8a75",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  button: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#d9601f",
+    paddingVertical: 16,
+    borderRadius: 28,
+    marginTop: 8,
+  },
+  buttonText: { color: "#fff", fontWeight: "700", fontSize: 15 },
   dividerRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -290,7 +304,7 @@ const styles = StyleSheet.create({
     gap: 8,
     borderWidth: 1,
     borderColor: "#d1d5db",
-    borderRadius: 12,
+    borderRadius: 28,
     paddingVertical: 14,
   },
   biometricButtonText: { fontSize: 14, fontWeight: "500", color: "#16302b" },

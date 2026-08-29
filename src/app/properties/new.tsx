@@ -15,48 +15,19 @@ import {
   View,
 } from "react-native";
 
-type TypeVisual = {
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
-  tint: string;
-  accent: string;
-};
-
-function getPropertyTypeVisual(name: string): TypeVisual {
+function propertyTypeIcon(name: string): keyof typeof MaterialCommunityIcons.glyphMap {
   const type = name.toLowerCase();
-  if (type.includes("condo")) {
-    return { icon: "domain", tint: "#fdece0", accent: "#d9601f" };
+  if (type.includes("condo")) return "domain";
+  if (type.includes("duplex")) return "home-group";
+  if (type.includes("mobile")) return "home-variant-outline";
+  if (type.includes("town") || type.includes("apartment") || type.includes("building")) {
+    return "office-building";
   }
-  if (type.includes("duplex")) {
-    return { icon: "home-group", tint: "#efe7fb", accent: "#7c4dff" };
-  }
-  if (type.includes("mobile")) {
-    return { icon: "home-variant-outline", tint: "#e3f0fc", accent: "#1f6fd9" };
-  }
-  if (type.includes("town")) {
-    return { icon: "office-building", tint: "#fdece0", accent: "#d9601f" };
-  }
-  if (type.includes("apartment") || type.includes("building")) {
-    return { icon: "office-building", tint: "#dff5f2", accent: "#2f8a75" };
-  }
-  return { icon: "home-outline", tint: "#dff5f2", accent: "#2f8a75" };
+  return "home-outline";
 }
 
 function formatPropertyType(type: string): string {
   return type.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
-}
-
-function FieldIcon({
-  name,
-  color,
-}: {
-  name: keyof typeof MaterialCommunityIcons.glyphMap;
-  color: string;
-}) {
-  return (
-    <View style={[styles.fieldIcon, { backgroundColor: color + "22" }]}>
-      <MaterialCommunityIcons name={name} size={13} color={color} />
-    </View>
-  );
 }
 
 export default function NewPropertyScreen() {
@@ -153,21 +124,14 @@ export default function NewPropertyScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
+        <Pressable style={styles.iconButton} onPress={() => router.back()}>
           <MaterialCommunityIcons
             name="chevron-left"
-            size={18}
+            size={22}
             color="#16302b"
           />
         </Pressable>
-        <Text style={styles.title}>Add property</Text>
-        <View style={styles.headerIcon}>
-          <MaterialCommunityIcons
-            name="home-plus-outline"
-            size={20}
-            color="#2f8a75"
-          />
-        </View>
+        <Text style={styles.title}>Add Property</Text>
       </View>
       <Text style={styles.headerSubtitle}>
         Fill in the details to add a new property.
@@ -177,7 +141,11 @@ export default function NewPropertyScreen() {
 
       <Text style={styles.label}>Property name</Text>
       <View style={styles.inputWrapper}>
-        <FieldIcon name="office-building" color="#2f8a75" />
+        <MaterialCommunityIcons
+          name="office-building"
+          size={18}
+          color="#5f5e5a"
+        />
         <TextInput
           style={styles.input}
           placeholder="Maple Street Duplex"
@@ -190,27 +158,22 @@ export default function NewPropertyScreen() {
       <Text style={styles.label}>Property type</Text>
       <View style={styles.typeGrid}>
         {propertyTypes.map((type) => {
-          const visual = getPropertyTypeVisual(type.name);
           const selected = propertyTypeId === type.id;
           return (
             <Pressable
               key={type.id}
-              style={[
-                styles.typeCard,
-                { backgroundColor: visual.tint },
-                selected && { borderColor: visual.accent },
-              ]}
+              style={[styles.typeCard, selected && styles.typeCardSelected]}
               onPress={() => setPropertyTypeId(type.id)}
               disabled={submitting}
             >
-              <View style={styles.typeIcon}>
-                <MaterialCommunityIcons
-                  name={visual.icon}
-                  size={13}
-                  color={visual.accent}
-                />
-              </View>
-              <Text style={[styles.typeText, { color: visual.accent }]}>
+              <MaterialCommunityIcons
+                name={propertyTypeIcon(type.name)}
+                size={18}
+                color={selected ? "#d9601f" : "#8a8fa8"}
+              />
+              <Text
+                style={[styles.typeText, selected && styles.typeTextSelected]}
+              >
                 {formatPropertyType(type.name)}
               </Text>
             </Pressable>
@@ -220,7 +183,11 @@ export default function NewPropertyScreen() {
 
       <Text style={styles.label}>Address line 1</Text>
       <View style={styles.inputWrapper}>
-        <FieldIcon name="map-marker-outline" color="#2f8a75" />
+        <MaterialCommunityIcons
+          name="map-marker-outline"
+          size={18}
+          color="#5f5e5a"
+        />
         <TextInput
           style={styles.input}
           placeholder="123 Maple St"
@@ -232,7 +199,7 @@ export default function NewPropertyScreen() {
 
       <Text style={styles.label}>Address line 2 (optional)</Text>
       <View style={styles.inputWrapper}>
-        <FieldIcon name="door" color="#2f8a75" />
+        <MaterialCommunityIcons name="door" size={18} color="#5f5e5a" />
         <TextInput
           style={styles.input}
           placeholder="Unit, suite, etc. (optional)"
@@ -246,7 +213,11 @@ export default function NewPropertyScreen() {
         <View style={styles.rowItem}>
           <Text style={styles.label}>City</Text>
           <View style={styles.inputWrapper}>
-            <FieldIcon name="city-variant-outline" color="#2f8a75" />
+            <MaterialCommunityIcons
+              name="city-variant-outline"
+              size={18}
+              color="#5f5e5a"
+            />
             <TextInput
               style={styles.input}
               placeholder="Toronto"
@@ -259,7 +230,11 @@ export default function NewPropertyScreen() {
         <View style={styles.rowItem}>
           <Text style={styles.label}>Province</Text>
           <View style={styles.inputWrapper}>
-            <FieldIcon name="map-outline" color="#2f8a75" />
+            <MaterialCommunityIcons
+              name="map-outline"
+              size={18}
+              color="#5f5e5a"
+            />
             <TextInput
               style={styles.input}
               placeholder="ON"
@@ -275,7 +250,11 @@ export default function NewPropertyScreen() {
         <View style={styles.rowItem}>
           <Text style={styles.label}>Postal code</Text>
           <View style={styles.inputWrapper}>
-            <FieldIcon name="email-outline" color="#2f8a75" />
+            <MaterialCommunityIcons
+              name="email-outline"
+              size={18}
+              color="#5f5e5a"
+            />
             <TextInput
               style={styles.input}
               placeholder="M5V 2T6"
@@ -288,20 +267,18 @@ export default function NewPropertyScreen() {
         <View style={styles.rowItem}>
           <Text style={styles.label}>Country</Text>
           <View style={[styles.inputWrapper, styles.inputDisabled]}>
-            <FieldIcon name="earth" color="#2f8a75" />
+            <MaterialCommunityIcons name="earth" size={18} color="#5f5e5a" />
             <Text style={styles.disabledText}>Canada</Text>
           </View>
         </View>
       </View>
 
       <View style={styles.infoBanner}>
-        <View style={styles.infoIcon}>
-          <MaterialCommunityIcons
-            name="clipboard-check-outline"
-            size={15}
-            color="#2f8a75"
-          />
-        </View>
+        <MaterialCommunityIcons
+          name="information-outline"
+          size={18}
+          color="#d9601f"
+        />
         <View style={{ flex: 1 }}>
           <Text style={styles.infoTitle}>Double check your details</Text>
           <Text style={styles.infoText}>
@@ -352,28 +329,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   header: { flexDirection: "row", alignItems: "center", gap: 12 },
-  backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  iconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
   },
-  title: { flex: 1, fontSize: 20, fontWeight: "700", color: "#16302b" },
-  headerIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#dff5f2",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  title: { fontSize: 20, fontWeight: "700", color: "#16302b" },
   headerSubtitle: {
     fontSize: 12,
     color: "#8a8fa8",
     marginTop: 6,
-    marginLeft: 44,
+    marginLeft: 50,
     marginBottom: 20,
   },
   label: {
@@ -388,20 +357,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     backgroundColor: "#fff",
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    borderRadius: 16,
+    paddingHorizontal: 14,
   },
-  fieldIcon: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  input: { flex: 1, paddingVertical: 8, fontSize: 14, color: "#16302b" },
+  input: { flex: 1, paddingVertical: 13, fontSize: 14, color: "#16302b" },
   inputDisabled: {},
-  disabledText: { fontSize: 14, color: "#8a8fa8" },
+  disabledText: { fontSize: 14, color: "#8a8fa8", paddingVertical: 13 },
   typeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   typeCard: {
     width: "48%",
@@ -409,55 +370,45 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     borderRadius: 12,
-    padding: 10,
-    borderWidth: 2,
-    borderColor: "transparent",
-  },
-  typeIcon: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
+    padding: 12,
     backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: "#fff",
   },
-  typeText: { fontSize: 11, fontWeight: "600", flexShrink: 1 },
+  typeCardSelected: {
+    backgroundColor: "#fdece0",
+    borderColor: "#d9601f",
+  },
+  typeText: { fontSize: 12, fontWeight: "600", color: "#8a8fa8", flexShrink: 1 },
+  typeTextSelected: { color: "#d9601f" },
   row: { flexDirection: "row", gap: 12 },
   rowItem: { flex: 1 },
   infoBanner: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 10,
-    backgroundColor: "#dff5f2",
+    backgroundColor: "#fff",
     borderRadius: 14,
-    padding: 12,
+    padding: 14,
     marginTop: 20,
   },
-  infoIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  infoTitle: { fontSize: 12, fontWeight: "700", color: "#0f4a42" },
-  infoText: { fontSize: 10, color: "#0f4a42", marginTop: 2, lineHeight: 14 },
+  infoTitle: { fontSize: 12, fontWeight: "700", color: "#16302b" },
+  infoText: { fontSize: 11, color: "#8a8fa8", marginTop: 2, lineHeight: 15 },
   actions: { flexDirection: "row", gap: 10, marginTop: 20 },
   cancelButton: {
     flex: 1,
     backgroundColor: "#fff",
-    borderRadius: 14,
-    paddingVertical: 13,
+    borderRadius: 28,
+    paddingVertical: 15,
     alignItems: "center",
   },
-  cancelButtonText: { fontSize: 13, fontWeight: "600", color: "#16302b" },
+  cancelButtonText: { fontSize: 14, fontWeight: "600", color: "#16302b" },
   submitButton: {
     flex: 1,
-    backgroundColor: "#16302b",
-    borderRadius: 14,
-    paddingVertical: 13,
+    backgroundColor: "#d9601f",
+    borderRadius: 28,
+    paddingVertical: 15,
     alignItems: "center",
   },
-  submitButtonText: { fontSize: 13, fontWeight: "600", color: "#fff" },
+  submitButtonText: { fontSize: 14, fontWeight: "700", color: "#fff" },
 });
