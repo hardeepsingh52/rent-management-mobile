@@ -26,6 +26,58 @@ lives there rather than being duplicated here.
 - **Canadian & Provincial Tenancy Law Compliance (Federal, Ontario, Manitoba)**: same standing
   requirement as the web repo — see this project's `AGENTS.md` for the full text.
 
+## 2026-08-31 — Claude (Windows) added session-expiry handling and started centralizing colors
+
+- **Real bug found and fixed: expired login token never signed the user out.** There
+  was no handling anywhere for an expired backend token — API calls just failed with
+  a generic "Something went wrong" error forever, since nothing ever cleared the
+  cached session or navigated back to login. Fixed in two files: `api-client.ts`'s
+  `backendFetch` now detects a `401` response and fires a registered
+  `onUnauthorized` handler (`setUnauthorizedHandler`); `session-context.tsx`
+  registers `signOut` as that handler on mount, and `signOut` now also clears the
+  cached biometric session (`Platform.OS !== "web"` guarded) so Face ID can't
+  silently hand back the same dead token. No screen code changed — `_layout.tsx`'s
+  existing `Stack.Protected guard={!user}` already reacts to `signOut()` clearing
+  `user`, so the redirect to `/login` falls out of the existing declarative routing
+  for free.
+- **Known gap, not yet built**: this only catches expiry reactively, when an actual
+  API call fails. Screens that never call the backend at all (Profile, which just
+  renders cached `user.fullName`/`email`) can still show stale session data
+  indefinitely if the app is reopened after the token's already expired. A
+  `src/lib/jwt.ts` helper (`isTokenExpired`, decoding the JWT's own `exp` claim
+  locally — no `atob`/`Buffer` polyfill exists in this RN/Expo version, so it needs a
+  hand-rolled base64url decoder, not a new dependency) plus checks on cold launch and
+  on `AppState` returning to `"active"` were designed but not implemented — see next
+  point.
+- **Backend is moving to access token (15 min) + refresh token (2-3 months,
+  rotating) — not done yet.** Once it ships, the mobile work above gets *extended*
+  (`SessionUser` gains `refreshToken`, `backendFetch` attempts a refresh before
+  giving up and signing out, concurrent 401s need to share one in-flight refresh call
+  since rotation invalidates the old refresh token on use) rather than replaced. The
+  proactive `jwt.ts` check above is still worth doing regardless of refresh tokens,
+  since Profile still never makes an API call either way. Blocked on the actual
+  endpoint contract (path, request/response field names) — don't guess it.
+- **Started centralizing the app's color palette** into `src/constants/colors.ts`
+  (new file — deliberately not reusing the pre-existing `constants/theme.ts`, which
+  is unused `create-expo-app` scaffold with its own unrelated `Colors.light/dark`
+  shape still referenced by a few unused template components). Every hex literal
+  across the app was grepped to build the list. Converted so far: `app-tabs.tsx`
+  (also fixed a real inconsistency this surfaced — the floating tab bar's raised "+"
+  button was still on `#f4793a`, a leftover orange from the very first design pass,
+  while everywhere else had already standardized on `#d9601f`; now uses
+  `Colors.accentOrange` like the rest of the app) and `login.tsx`. This is being done
+  as its own reason: same colors need porting to the sibling web app's
+  `globals.css` (Tailwind v4 theme) eventually, and web is currently still on the old
+  pre-rebrand blue/green palette — not started on the web side yet, mobile first.
+- Verified with `npx tsc --noEmit` (clean) after each step; app-tabs/login changes
+  spot-checked in the web preview (onboarding screen renders correctly, zero console
+  errors — couldn't verify past login without test credentials, not blocking).
+- **Next step**: keep converting remaining screens to `Colors.*` — `onboarding.tsx`,
+  dashboard `index.tsx` (largest), `properties.tsx`, `properties/new.tsx`,
+  `properties/[id]/index.tsx`, `properties/[id]/units/new.tsx`. After that, either
+  build the `jwt.ts` proactive-expiry check, or wait for the backend refresh-token
+  endpoint and do both auth pieces together — user's call.
+
 ## 2026-08-29 — Claude (Mac) brought the Properties list screen onto the new design language
 
 - Mocked up the change with the `visualize` tool first (single-accent stat tiles, photo-style
