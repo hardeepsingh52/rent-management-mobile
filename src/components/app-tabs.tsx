@@ -1,19 +1,26 @@
+import { Colors } from "@/constants/colors";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import {
-  Tabs,
   TabList,
-  TabTrigger,
-  TabSlot,
-  TabTriggerSlotProps,
   TabListProps,
+  Tabs,
+  TabSlot,
+  TabTrigger,
+  TabTriggerSlotProps,
 } from "expo-router/ui";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { useRouter } from "expo-router";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function AppTabs() {
   return (
     <Tabs>
-    <TabSlot style={{ flex: 1, paddingBottom: 90, backgroundColor: "#f5f6fa" }} />
+      <TabSlot
+        style={{
+          flex: 1,
+          paddingBottom: 90,
+          backgroundColor: Colors.background,
+        }}
+      />
       <TabList asChild>
         <FloatingTabBar>
           <TabTrigger name="dashboard" href="/" asChild>
@@ -49,7 +56,7 @@ function TabButton({
       <MaterialCommunityIcons
         name={icon}
         size={20}
-        color={isFocused ? "#16302b" : "#b6b9c9"}
+        color={isFocused ? Colors.primaryDark : Colors.borderLighter}
       />
       <Text style={[styles.tabLabel, isFocused && styles.tabLabelFocused]}>
         {label}
@@ -67,21 +74,21 @@ function FloatingTabBar({ children, ...props }: TabListProps) {
         style={styles.fab}
         onPress={() => router.push("/properties/new")}
       >
-        <MaterialCommunityIcons name="plus" size={20} color="#fff" />
+        <MaterialCommunityIcons name="plus" size={20} color={Colors.white} />
       </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-   island: {
+  island: {
     position: "absolute",
     left: 18,
     right: 18,
     bottom: 18,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     borderRadius: 26,
     paddingVertical: 10,
     paddingHorizontal: 8,
@@ -97,9 +104,9 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#f4793a",
+    backgroundColor: Colors.accentOrange,
     borderWidth: 4,
-    borderColor: "#f5f6fa",
+    borderColor: Colors.background,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -110,6 +117,6 @@ const styles = StyleSheet.create({
     gap: 3,
     paddingVertical: 2,
   },
-  tabLabel: { fontSize: 9, color: "#b6b9c9" },
-  tabLabelFocused: { color: "#16302b", fontWeight: "600" },
+  tabLabel: { fontSize: 9, color: Colors.borderLighter },
+  tabLabelFocused: { color: Colors.primaryDark, fontWeight: "600" },
 });

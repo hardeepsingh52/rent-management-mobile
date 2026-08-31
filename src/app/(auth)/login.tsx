@@ -1,3 +1,4 @@
+import { Colors } from "@/constants/colors";
 import { login } from "@/lib/auth-api";
 import {
   authenticateWithBiometrics,
@@ -124,7 +125,7 @@ export default function LoginScreen() {
             <MaterialCommunityIcons
               name="email-outline"
               size={18}
-              color="#5f5e5a"
+              color={Colors.textMutedDark}
             />
             <TextInput
               style={styles.input}
@@ -151,7 +152,7 @@ export default function LoginScreen() {
             <MaterialCommunityIcons
               name="lock-outline"
               size={18}
-              color="#5f5e5a"
+              color={Colors.textMutedDark}
             />
             <TextInput
               ref={passwordRef}
@@ -169,7 +170,7 @@ export default function LoginScreen() {
               <MaterialCommunityIcons
                 name={showPassword ? "eye-off" : "eye"}
                 size={18}
-                color="#5f5e5a"
+                color={Colors.textMutedDark}
               />
             </Pressable>
           </View>
@@ -180,13 +181,13 @@ export default function LoginScreen() {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={Colors.white} />
             ) : (
               <>
                 <MaterialCommunityIcons
                   name="login-variant"
                   size={18}
-                  color="#fff"
+                  color={Colors.white}
                 />
                 <Text style={styles.buttonText}>Log in</Text>
               </>
@@ -207,13 +208,13 @@ export default function LoginScreen() {
                 disabled={biometricLoading}
               >
                 {biometricLoading ? (
-                  <ActivityIndicator color="#2f8a75" />
+                  <ActivityIndicator color={Colors.accentTeal} />
                 ) : (
                   <>
                     <MaterialCommunityIcons
                       name="fingerprint"
                       size={18}
-                      color="#2f8a75"
+                      color={Colors.accentTeal}
                     />
                     <Text style={styles.biometricButtonText}>
                       Log in with Face ID
@@ -230,7 +231,7 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: Colors.white },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 28,
@@ -239,28 +240,28 @@ const styles = StyleSheet.create({
   },
   logoWrap: { alignItems: "center", marginBottom: 28 },
   logo: { width: 250, height: 125, borderRadius: 20 },
-  title: { fontSize: 26, fontWeight: "700", color: "#16302b" },
+  title: { fontSize: 26, fontWeight: "700", color: Colors.primaryDark },
   subtitle: {
     fontSize: 13,
-    color: "#8a8fa8",
+    color: Colors.textMuted,
     marginTop: 6,
     marginBottom: 28,
     lineHeight: 19,
   },
   error: {
-    backgroundColor: "#fee2e2",
-    color: "#b91c1c",
+    backgroundColor: Colors.errorBg,
+    color: Colors.errorText,
     padding: 10,
     borderRadius: 8,
     marginBottom: 16,
     fontSize: 14,
   },
-  label: { fontSize: 13, fontWeight: "600", color: "#16302b" },
+  label: { fontSize: 13, fontWeight: "600", color: Colors.primaryDark },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "#f5f6fa",
+    backgroundColor: Colors.background,
     borderRadius: 16,
     paddingHorizontal: 16,
     marginTop: 8,
@@ -273,7 +274,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   forgotLink: {
-    color: "#2f8a75",
+    color: Colors.accentTeal,
     fontSize: 12,
     fontWeight: "600",
   },
@@ -282,12 +283,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#d9601f",
+    backgroundColor: Colors.accentOrange,
     paddingVertical: 16,
     borderRadius: 28,
     marginTop: 8,
   },
-  buttonText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  buttonText: { color: Colors.white, fontWeight: "700", fontSize: 15 },
   dividerRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -295,17 +296,21 @@ const styles = StyleSheet.create({
     marginTop: 22,
     marginBottom: 22,
   },
-  dividerLine: { flex: 1, height: 1, backgroundColor: "#e5e5e5" },
-  dividerText: { fontSize: 11, color: "#5f5e5a" },
+  dividerLine: { flex: 1, height: 1, backgroundColor: Colors.divider },
+  dividerText: { fontSize: 11, color: Colors.textMutedDark },
   biometricButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: Colors.borderMedium,
     borderRadius: 28,
     paddingVertical: 14,
   },
-  biometricButtonText: { fontSize: 14, fontWeight: "500", color: "#16302b" },
+  biometricButtonText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: Colors.primaryDark,
+  },
 });
