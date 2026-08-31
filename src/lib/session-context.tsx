@@ -1,4 +1,13 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
+import { Platform } from "react-native";
+import { setUnauthorizedHandler } from "./api-client";
+import { clearBiometricSession } from "./biometric-session";
 import { clearSession, getSession, saveSession } from "./session";
 import type { SessionUser } from "./types";
 
@@ -29,8 +38,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   async function signOut() {
     await clearSession();
+    if (Platform.OS !== "web") {
+      await clearBiometricSession();
+    }
     setUser(null);
   }
+
+  useEffect(() => {
+    setUnauthorizedHandler(signOut);
+  }, []);
 
   return (
     <SessionContext.Provider value={{ user, loading, signIn, signOut }}>
