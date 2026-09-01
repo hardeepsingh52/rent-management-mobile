@@ -3,7 +3,7 @@ import { extractErrorMessage } from "./api-error";
 import type { CreatePropertyInput, CreateUnitInput, Property } from "./types";
 
 export async function getMyProperties(token: string): Promise<Property[]> {
-  const response = await backendFetch("/api/properties/mine", token);
+  const response = await backendFetch("/properties/mine", token);
   if (!response.ok) {
     throw new Error(await extractErrorMessage(response));
   }
@@ -14,7 +14,7 @@ export async function getProperty(
   id: string,
   token: string,
 ): Promise<Property> {
-  const response = await backendFetch(`/api/properties/${id}`, token);
+  const response = await backendFetch(`/properties/${id}`, token);
   if (!response.ok) {
     throw new Error(await extractErrorMessage(response));
   }
@@ -25,7 +25,7 @@ export async function createProperty(
   input: CreatePropertyInput,
   token: string,
 ): Promise<void> {
-  const response = await backendFetch("/api/properties", token, {
+  const response = await backendFetch("/properties", token, {
     method: "POST",
     body: JSON.stringify(input),
   });
@@ -40,7 +40,7 @@ export async function createUnit(
   token: string,
 ): Promise<void> {
   const response = await backendFetch(
-    `/api/properties/${propertyId}/units`,
+    `/properties/${propertyId}/units`,
     token,
     {
       method: "POST",

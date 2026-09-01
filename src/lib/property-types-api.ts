@@ -3,7 +3,7 @@ import { extractErrorMessage } from "./api-error";
 import type { PropertyType } from "./types";
 
 export async function getPropertyTypes(token: string): Promise<PropertyType[]> {
-  const response = await backendFetch("/api/properties/property-types", token);
+  const response = await backendFetch("/properties/property-types", token);
   if (!response.ok) {
     throw new Error(await extractErrorMessage(response));
   }

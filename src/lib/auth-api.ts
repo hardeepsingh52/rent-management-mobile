@@ -1,13 +1,14 @@
+import { API_BASE_URL } from "./api-client";
 import { extractErrorMessage } from "./api-error";
 import type { SessionUser } from "./types";
 
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_API_URL;
+//const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_API_URL;
 
 export async function login(
   email: string,
   password: string,
 ): Promise<SessionUser> {
-  const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
+  const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ Email: email, Password: password }),
@@ -28,7 +29,7 @@ export async function login(
 }
 
 export async function forgotPassword(email: string): Promise<void> {
-  const response = await fetch(`${BACKEND_URL}/api/auth/forgot-password`, {
+  const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ Email: email }),

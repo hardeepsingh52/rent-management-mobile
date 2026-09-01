@@ -1,4 +1,5 @@
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_API_URL;
+export const API_BASE_URL = `${BACKEND_URL}/api/v1`;
 
 let onUnauthorized: (() => void) | null = null;
 
@@ -11,7 +12,7 @@ export async function backendFetch(
   token: string,
   init?: RequestInit,
 ): Promise<Response> {
-  const response = await fetch(`${BACKEND_URL}${path}`, {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
