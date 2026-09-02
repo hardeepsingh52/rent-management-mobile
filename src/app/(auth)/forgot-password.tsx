@@ -9,6 +9,7 @@ import {
   Text,
   TextInput,
 } from "react-native";
+import { Colors } from "@/constants/colors";
 import { forgotPassword } from "@/lib/auth-api";
 
 export default function ForgotPasswordScreen() {
@@ -70,7 +71,7 @@ export default function ForgotPasswordScreen() {
         disabled={loading}
       >
         {loading ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={Colors.white} />
         ) : (
           <Text style={styles.buttonText}>Send reset link</Text>
         )}
@@ -88,21 +89,21 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     padding: 24,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
   },
   title: { fontSize: 24, fontWeight: "700", marginBottom: 8 },
-  subtitle: { fontSize: 14, color: "#666", marginBottom: 24 },
+  subtitle: { fontSize: 14, color: Colors.textMuted, marginBottom: 24 },
   success: {
-    backgroundColor: "#dcfce7",
-    color: "#15803d",
+    backgroundColor: Colors.tealTint,
+    color: Colors.accentTeal,
     padding: 10,
     borderRadius: 8,
     marginBottom: 16,
     fontSize: 14,
   },
   error: {
-    backgroundColor: "#fee2e2",
-    color: "#b91c1c",
+    backgroundColor: Colors.errorBg,
+    color: Colors.errorText,
     padding: 10,
     borderRadius: 8,
     marginBottom: 16,
@@ -111,23 +112,23 @@ const styles = StyleSheet.create({
   label: { fontSize: 14, fontWeight: "600", marginBottom: 6 },
   input: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: Colors.borderMedium,
     borderRadius: 10,
     padding: 12,
     marginBottom: 16,
     fontSize: 16,
   },
   button: {
-    backgroundColor: "#1565c0",
+    backgroundColor: Colors.accentOrange,
     padding: 14,
     borderRadius: 10,
     alignItems: "center",
     marginTop: 8,
   },
-  buttonText: { color: "#fff", fontWeight: "600", fontSize: 16 },
+  buttonText: { color: Colors.white, fontWeight: "600", fontSize: 16 },
   backLink: {
     textAlign: "center",
-    color: "#5f5e5a",
+    color: Colors.textMutedDark,
     fontSize: 14,
     marginTop: 16,
   },

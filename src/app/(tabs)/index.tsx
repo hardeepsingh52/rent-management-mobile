@@ -1,3 +1,4 @@
+import { Colors } from "@/constants/colors";
 import { getMyProperties } from "@/lib/properties-api";
 import { useSession } from "@/lib/session-context";
 import type { Property } from "@/lib/types";
@@ -115,7 +116,7 @@ export default function DashboardScreen() {
                   <MaterialCommunityIcons
                     name="plus"
                     size={20}
-                    color="#16302b"
+                    color={Colors.primaryDark}
                   />
                 </Pressable>
                 <Pressable
@@ -125,7 +126,7 @@ export default function DashboardScreen() {
                   <MaterialCommunityIcons
                     name="bell-outline"
                     size={20}
-                    color="#16302b"
+                    color={Colors.primaryDark}
                   />
                   <View style={styles.bellDot} />
                 </Pressable>
@@ -138,7 +139,7 @@ export default function DashboardScreen() {
                 <MaterialCommunityIcons
                   name="home-city-outline"
                   size={20}
-                  color="#d9601f"
+                  color={Colors.accentOrange}
                 />
                 <Text style={styles.statLabel}>Properties</Text>
                 <Text style={styles.statValue}>{totalProperties}</Text>
@@ -147,7 +148,7 @@ export default function DashboardScreen() {
                 <MaterialCommunityIcons
                   name="door-open"
                   size={20}
-                  color="#d9601f"
+                  color={Colors.accentOrange}
                 />
                 <Text style={styles.statLabel}>Occupied</Text>
                 <Text style={styles.statValue}>
@@ -159,7 +160,7 @@ export default function DashboardScreen() {
                 <MaterialCommunityIcons
                   name="cash-multiple"
                   size={20}
-                  color="#d9601f"
+                  color={Colors.accentOrange}
                 />
                 <Text style={styles.statLabel}>Rent Collected</Text>
                 <Text style={styles.statValue}>—</Text>
@@ -168,7 +169,7 @@ export default function DashboardScreen() {
                 <MaterialCommunityIcons
                   name="wrench-outline"
                   size={20}
-                  color="#d9601f"
+                  color={Colors.accentOrange}
                 />
                 <Text style={styles.statLabel}>Maint. Request</Text>
                 <Text style={styles.statValue}>0</Text>
@@ -186,7 +187,7 @@ export default function DashboardScreen() {
                   <MaterialCommunityIcons
                     name="chevron-down"
                     size={14}
-                    color="#5f5e5a"
+                    color={Colors.textMutedDark}
                   />
                 </Pressable>
               </View>
@@ -248,7 +249,7 @@ export default function DashboardScreen() {
                 <MaterialCommunityIcons
                   name="home-city-outline"
                   size={26}
-                  color="#d9601f"
+                  color={Colors.accentOrange}
                 />
               </View>
               <View style={styles.propertyInfo}>
@@ -262,7 +263,7 @@ export default function DashboardScreen() {
                   <MaterialCommunityIcons
                     name="map-marker-outline"
                     size={12}
-                    color="#8a8fa8"
+                    color={Colors.textMuted}
                   />
                   <Text style={styles.propertyCity}>{item.city}</Text>
                 </View>
@@ -271,7 +272,7 @@ export default function DashboardScreen() {
                     <MaterialCommunityIcons
                       name="account-multiple-outline"
                       size={14}
-                      color="#5f5e5a"
+                      color={Colors.textMutedDark}
                     />
                     <Text style={styles.propertyStatValue}>0</Text>
                   </View>
@@ -279,7 +280,7 @@ export default function DashboardScreen() {
                     <MaterialCommunityIcons
                       name="door"
                       size={14}
-                      color="#5f5e5a"
+                      color={Colors.textMutedDark}
                     />
                     <Text style={styles.propertyStatValue}>
                       {item.units.length}
@@ -293,7 +294,7 @@ export default function DashboardScreen() {
               <MaterialCommunityIcons
                 name="chevron-right"
                 size={20}
-                color="#c7cad9"
+                color={Colors.borderLight}
               />
             </Pressable>
           );
@@ -316,7 +317,7 @@ export default function DashboardScreen() {
                     <MaterialCommunityIcons
                       name="home-plus-outline"
                       size={22}
-                      color="#0f4a42"
+                      color={Colors.greenDark}
                     />
                   </View>
                   <Text style={styles.quickActionLabel}>Add Property</Text>
@@ -334,7 +335,7 @@ export default function DashboardScreen() {
                     <MaterialCommunityIcons
                       name="account-plus-outline"
                       size={22}
-                      color="#d9601f"
+                      color={Colors.accentOrange}
                     />
                   </View>
                   <Text style={styles.quickActionLabel}>Add Tenant</Text>
@@ -349,7 +350,7 @@ export default function DashboardScreen() {
                     <MaterialCommunityIcons
                       name="cash-plus"
                       size={22}
-                      color="#1f6fd9"
+                      color={Colors.accentBlue}
                     />
                   </View>
                   <Text style={styles.quickActionLabel}>Add Rent</Text>
@@ -367,7 +368,7 @@ export default function DashboardScreen() {
                     <MaterialCommunityIcons
                       name="chart-bar"
                       size={22}
-                      color="#7c4dff"
+                      color={Colors.purple}
                     />
                   </View>
                   <Text style={styles.quickActionLabel}>Reports</Text>
@@ -383,7 +384,7 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f6fa" },
+  container: { flex: 1, backgroundColor: Colors.background },
   listContent: { paddingBottom: 24 },
   header: {
     flexDirection: "row",
@@ -396,20 +397,20 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "#16302b",
+    backgroundColor: Colors.primaryDark,
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarText: { fontSize: 14, fontWeight: "600", color: "#fff" },
+  avatarText: { fontSize: 14, fontWeight: "600", color: Colors.white },
   headerCenter: { flex: 1, marginLeft: 12 },
-  name: { fontSize: 16, fontWeight: "700", color: "#16302b" },
-  role: { fontSize: 12, color: "#8a8fa8", marginTop: 2 },
+  name: { fontSize: 16, fontWeight: "700", color: Colors.primaryDark },
+  role: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 10 },
   iconButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -420,12 +421,12 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: "#f4793a",
+    backgroundColor: Colors.accentOrange,
   },
   screenSectionTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#16302b",
+    color: Colors.primaryDark,
     paddingHorizontal: 18,
     marginBottom: 12,
   },
@@ -438,15 +439,15 @@ const styles = StyleSheet.create({
   },
   statTile: {
     width: "47%",
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 14,
   },
-  statLabel: { fontSize: 11, color: "#8a8fa8", marginTop: 8 },
-  statValue: { fontSize: 20, fontWeight: "700", color: "#16302b", marginTop: 2 },
-  statValueMuted: { fontSize: 14, fontWeight: "500", color: "#b6b9c9" },
+  statLabel: { fontSize: 11, color: Colors.textMuted, marginTop: 8 },
+  statValue: { fontSize: 20, fontWeight: "700", color: Colors.primaryDark, marginTop: 2 },
+  statValueMuted: { fontSize: 14, fontWeight: "500", color: Colors.borderLighter },
   chartCard: {
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 16,
     marginHorizontal: 18,
@@ -462,15 +463,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#f5f6fa",
+    backgroundColor: Colors.background,
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  monthlyPillText: { fontSize: 11, fontWeight: "600", color: "#5f5e5a" },
+  monthlyPillText: { fontSize: 11, fontWeight: "600", color: Colors.textMutedDark },
   chartRow: { flexDirection: "row", alignItems: "flex-end", gap: 12 },
   chartAxis: { justifyContent: "space-between", height: 120, marginBottom: 18 },
-  chartAxisLabel: { fontSize: 10, color: "#b6b9c9" },
+  chartAxisLabel: { fontSize: 10, color: Colors.borderLighter },
   chartBars: {
     flex: 1,
     flexDirection: "row",
@@ -478,8 +479,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   chartBarColumn: { alignItems: "center", gap: 6 },
-  chartBar: { width: 16, borderRadius: 6, backgroundColor: "#f4793a" },
-  chartBarLabel: { fontSize: 10, color: "#8a8fa8" },
+  chartBar: { width: 16, borderRadius: 6, backgroundColor: Colors.accentOrange },
+  chartBarLabel: { fontSize: 10, color: Colors.textMuted },
   sectionHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -488,15 +489,15 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     paddingHorizontal: 18,
   },
-  sectionTitle: { fontSize: 15, fontWeight: "700", color: "#16302b" },
-  viewAllLink: { fontSize: 12, fontWeight: "600", color: "#2f8a75" },
-  error: { color: "#b91c1c", paddingHorizontal: 18, fontSize: 13 },
-  empty: { color: "#5f5e5a", paddingHorizontal: 18, fontSize: 13 },
+  sectionTitle: { fontSize: 15, fontWeight: "700", color: Colors.primaryDark },
+  viewAllLink: { fontSize: 12, fontWeight: "600", color: Colors.accentTeal },
+  error: { color: Colors.errorText, paddingHorizontal: 18, fontSize: 13 },
+  empty: { color: Colors.textMutedDark, paddingHorizontal: 18, fontSize: 13 },
   propertyCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 12,
     marginHorizontal: 18,
@@ -506,7 +507,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 12,
-    backgroundColor: "#fdece0",
+    backgroundColor: Colors.orangeTint,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -516,14 +517,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  propertyName: { fontSize: 14, fontWeight: "700", color: "#16302b" },
+  propertyName: { fontSize: 14, fontWeight: "700", color: Colors.primaryDark },
   propertyCityRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
     marginTop: 2,
   },
-  propertyCity: { fontSize: 11, color: "#8a8fa8" },
+  propertyCity: { fontSize: 11, color: Colors.textMuted },
   propertyStatsRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -531,25 +532,25 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   propertyStat: { flexDirection: "row", alignItems: "center", gap: 4 },
-  propertyStatValue: { fontSize: 12, fontWeight: "600", color: "#5f5e5a" },
+  propertyStatValue: { fontSize: 12, fontWeight: "600", color: Colors.textMutedDark },
   occupancyRing: {
     width: 34,
     height: 34,
     borderRadius: 17,
     borderWidth: 2,
-    borderColor: "#2f8a75",
+    borderColor: Colors.accentTeal,
     alignItems: "center",
     justifyContent: "center",
     marginLeft: "auto",
   },
-  occupancyRingText: { fontSize: 9, fontWeight: "700", color: "#2f8a75" },
+  occupancyRingText: { fontSize: 9, fontWeight: "700", color: Colors.accentTeal },
   badge: {
-    backgroundColor: "#dff5f2",
+    backgroundColor: Colors.tealTint,
     borderRadius: 20,
     paddingHorizontal: 9,
     paddingVertical: 4,
   },
-  badgeText: { fontSize: 10, fontWeight: "600", color: "#2f8a75" },
+  badgeText: { fontSize: 10, fontWeight: "600", color: Colors.accentTeal },
   quickActions: { paddingHorizontal: 18, marginTop: 10 },
   quickActionsGrid: {
     flexDirection: "row",
@@ -559,7 +560,7 @@ const styles = StyleSheet.create({
   },
   quickAction: {
     width: "47%",
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     borderRadius: 16,
     paddingVertical: 18,
     alignItems: "center",
@@ -572,9 +573,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  quickActionIconGreen: { backgroundColor: "#dff5f2" },
-  quickActionIconOrange: { backgroundColor: "#fdece0" },
-  quickActionIconBlue: { backgroundColor: "#e3f0fc" },
-  quickActionIconPurple: { backgroundColor: "#efe7fb" },
-  quickActionLabel: { fontSize: 12, fontWeight: "600", color: "#16302b" },
+  quickActionIconGreen: { backgroundColor: Colors.tealTint },
+  quickActionIconOrange: { backgroundColor: Colors.orangeTint },
+  quickActionIconBlue: { backgroundColor: Colors.blueTint },
+  quickActionIconPurple: { backgroundColor: Colors.purpleTint },
+  quickActionLabel: { fontSize: 12, fontWeight: "600", color: Colors.primaryDark },
 });

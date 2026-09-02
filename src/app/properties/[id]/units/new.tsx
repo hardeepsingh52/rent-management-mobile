@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Colors } from "@/constants/colors";
 import { useSession } from "@/lib/session-context";
 import { getUnitTypes } from "@/lib/unit-types-api";
 import { createUnit } from "@/lib/properties-api";
@@ -117,7 +118,7 @@ export default function NewUnitScreen() {
           <MaterialCommunityIcons
             name="chevron-left"
             size={22}
-            color="#16302b"
+            color={Colors.primaryDark}
           />
         </Pressable>
         <Text style={styles.title}>Add Unit</Text>
@@ -142,7 +143,7 @@ export default function NewUnitScreen() {
               <MaterialCommunityIcons
                 name={unitTypeIcon(type.name)}
                 size={18}
-                color={selected ? "#d9601f" : "#8a8fa8"}
+                color={selected ? Colors.accentOrange : Colors.textMuted}
               />
               <Text
                 style={[styles.typeText, selected && styles.typeTextSelected]}
@@ -156,7 +157,7 @@ export default function NewUnitScreen() {
 
       <Text style={styles.label}>Label</Text>
       <View style={styles.inputWrapper}>
-        <MaterialCommunityIcons name="tag-outline" size={18} color="#5f5e5a" />
+        <MaterialCommunityIcons name="tag-outline" size={18} color={Colors.textMutedDark} />
         <TextInput
           style={styles.input}
           placeholder="e.g. 1A, 2B"
@@ -170,7 +171,7 @@ export default function NewUnitScreen() {
         <View style={styles.rowItem}>
           <Text style={styles.label}>Bedrooms</Text>
           <View style={styles.inputWrapper}>
-            <MaterialCommunityIcons name="bed-outline" size={18} color="#5f5e5a" />
+            <MaterialCommunityIcons name="bed-outline" size={18} color={Colors.textMutedDark} />
             <TextInput
               style={styles.input}
               placeholder="2"
@@ -184,7 +185,7 @@ export default function NewUnitScreen() {
         <View style={styles.rowItem}>
           <Text style={styles.label}>Bathrooms</Text>
           <View style={styles.inputWrapper}>
-            <MaterialCommunityIcons name="shower" size={18} color="#5f5e5a" />
+            <MaterialCommunityIcons name="shower" size={18} color={Colors.textMutedDark} />
             <TextInput
               style={styles.input}
               placeholder="1"
@@ -199,7 +200,7 @@ export default function NewUnitScreen() {
 
       <Text style={styles.label}>Square feet</Text>
       <View style={styles.inputWrapper}>
-        <MaterialCommunityIcons name="ruler-square" size={18} color="#5f5e5a" />
+        <MaterialCommunityIcons name="ruler-square" size={18} color={Colors.textMutedDark} />
         <TextInput
           style={styles.input}
           placeholder="850"
@@ -212,7 +213,7 @@ export default function NewUnitScreen() {
 
       <Text style={styles.label}>Asking rent (monthly)</Text>
       <View style={styles.inputWrapper}>
-        <MaterialCommunityIcons name="cash-multiple" size={18} color="#5f5e5a" />
+        <MaterialCommunityIcons name="cash-multiple" size={18} color={Colors.textMutedDark} />
         <TextInput
           style={styles.input}
           placeholder="1500"
@@ -237,7 +238,7 @@ export default function NewUnitScreen() {
           disabled={submitting}
         >
           {submitting ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={Colors.white} />
           ) : (
             <Text style={styles.submitButtonText}>Add unit</Text>
           )}
@@ -248,17 +249,17 @@ export default function NewUnitScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f6fa" },
+  container: { flex: 1, backgroundColor: Colors.background },
   content: { padding: 20, paddingBottom: 40 },
   centered: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f5f6fa",
+    backgroundColor: Colors.background,
   },
   error: {
-    backgroundColor: "#fee2e2",
-    color: "#b91c1c",
+    backgroundColor: Colors.errorBg,
+    color: Colors.errorText,
     padding: 10,
     borderRadius: 8,
     marginBottom: 16,
@@ -269,14 +270,14 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     alignItems: "center",
     justifyContent: "center",
   },
-  title: { fontSize: 20, fontWeight: "700", color: "#16302b" },
+  title: { fontSize: 20, fontWeight: "700", color: Colors.primaryDark },
   headerSubtitle: {
     fontSize: 12,
-    color: "#8a8fa8",
+    color: Colors.textMuted,
     marginTop: 6,
     marginLeft: 50,
     marginBottom: 20,
@@ -284,7 +285,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#16302b",
+    color: Colors.primaryDark,
     marginBottom: 6,
     marginTop: 14,
   },
@@ -292,11 +293,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     borderRadius: 16,
     paddingHorizontal: 14,
   },
-  input: { flex: 1, paddingVertical: 13, fontSize: 14, color: "#16302b" },
+  input: { flex: 1, paddingVertical: 13, fontSize: 14, color: Colors.primaryDark },
   typeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   typeCard: {
     flexDirection: "row",
@@ -305,33 +306,33 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     borderWidth: 1.5,
-    borderColor: "#fff",
+    borderColor: Colors.white,
   },
   typeCardSelected: {
-    backgroundColor: "#fdece0",
-    borderColor: "#d9601f",
+    backgroundColor: Colors.orangeTint,
+    borderColor: Colors.accentOrange,
   },
-  typeText: { fontSize: 13, fontWeight: "600", color: "#8a8fa8" },
-  typeTextSelected: { color: "#d9601f" },
+  typeText: { fontSize: 13, fontWeight: "600", color: Colors.textMuted },
+  typeTextSelected: { color: Colors.accentOrange },
   row: { flexDirection: "row", gap: 12 },
   rowItem: { flex: 1 },
   actions: { flexDirection: "row", gap: 10, marginTop: 24 },
   cancelButton: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     borderRadius: 28,
     paddingVertical: 15,
     alignItems: "center",
   },
-  cancelButtonText: { fontSize: 14, fontWeight: "600", color: "#16302b" },
+  cancelButtonText: { fontSize: 14, fontWeight: "600", color: Colors.primaryDark },
   submitButton: {
     flex: 1,
-    backgroundColor: "#d9601f",
+    backgroundColor: Colors.accentOrange,
     borderRadius: 28,
     paddingVertical: 15,
     alignItems: "center",
   },
-  submitButtonText: { fontSize: 14, fontWeight: "700", color: "#fff" },
+  submitButtonText: { fontSize: 14, fontWeight: "700", color: Colors.white },
 });

@@ -1,3 +1,4 @@
+import { Colors } from "@/constants/colors";
 import { createProperty } from "@/lib/properties-api";
 import { getPropertyTypes } from "@/lib/property-types-api";
 import { useSession } from "@/lib/session-context";
@@ -128,7 +129,7 @@ export default function NewPropertyScreen() {
           <MaterialCommunityIcons
             name="chevron-left"
             size={22}
-            color="#16302b"
+            color={Colors.primaryDark}
           />
         </Pressable>
         <Text style={styles.title}>Add Property</Text>
@@ -144,7 +145,7 @@ export default function NewPropertyScreen() {
         <MaterialCommunityIcons
           name="office-building"
           size={18}
-          color="#5f5e5a"
+          color={Colors.textMutedDark}
         />
         <TextInput
           style={styles.input}
@@ -169,7 +170,7 @@ export default function NewPropertyScreen() {
               <MaterialCommunityIcons
                 name={propertyTypeIcon(type.name)}
                 size={18}
-                color={selected ? "#d9601f" : "#8a8fa8"}
+                color={selected ? Colors.accentOrange : Colors.textMuted}
               />
               <Text
                 style={[styles.typeText, selected && styles.typeTextSelected]}
@@ -186,7 +187,7 @@ export default function NewPropertyScreen() {
         <MaterialCommunityIcons
           name="map-marker-outline"
           size={18}
-          color="#5f5e5a"
+          color={Colors.textMutedDark}
         />
         <TextInput
           style={styles.input}
@@ -199,7 +200,7 @@ export default function NewPropertyScreen() {
 
       <Text style={styles.label}>Address line 2 (optional)</Text>
       <View style={styles.inputWrapper}>
-        <MaterialCommunityIcons name="door" size={18} color="#5f5e5a" />
+        <MaterialCommunityIcons name="door" size={18} color={Colors.textMutedDark} />
         <TextInput
           style={styles.input}
           placeholder="Unit, suite, etc. (optional)"
@@ -216,7 +217,7 @@ export default function NewPropertyScreen() {
             <MaterialCommunityIcons
               name="city-variant-outline"
               size={18}
-              color="#5f5e5a"
+              color={Colors.textMutedDark}
             />
             <TextInput
               style={styles.input}
@@ -233,7 +234,7 @@ export default function NewPropertyScreen() {
             <MaterialCommunityIcons
               name="map-outline"
               size={18}
-              color="#5f5e5a"
+              color={Colors.textMutedDark}
             />
             <TextInput
               style={styles.input}
@@ -253,7 +254,7 @@ export default function NewPropertyScreen() {
             <MaterialCommunityIcons
               name="email-outline"
               size={18}
-              color="#5f5e5a"
+              color={Colors.textMutedDark}
             />
             <TextInput
               style={styles.input}
@@ -267,7 +268,7 @@ export default function NewPropertyScreen() {
         <View style={styles.rowItem}>
           <Text style={styles.label}>Country</Text>
           <View style={[styles.inputWrapper, styles.inputDisabled]}>
-            <MaterialCommunityIcons name="earth" size={18} color="#5f5e5a" />
+            <MaterialCommunityIcons name="earth" size={18} color={Colors.textMutedDark} />
             <Text style={styles.disabledText}>Canada</Text>
           </View>
         </View>
@@ -277,7 +278,7 @@ export default function NewPropertyScreen() {
         <MaterialCommunityIcons
           name="information-outline"
           size={18}
-          color="#d9601f"
+          color={Colors.accentOrange}
         />
         <View style={{ flex: 1 }}>
           <Text style={styles.infoTitle}>Double check your details</Text>
@@ -301,7 +302,7 @@ export default function NewPropertyScreen() {
           disabled={submitting}
         >
           {submitting ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={Colors.white} />
           ) : (
             <Text style={styles.submitButtonText}>Add property</Text>
           )}
@@ -312,17 +313,17 @@ export default function NewPropertyScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f6fa" },
+  container: { flex: 1, backgroundColor: Colors.background },
   content: { padding: 20, paddingBottom: 40 },
   centered: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f5f6fa",
+    backgroundColor: Colors.background,
   },
   error: {
-    backgroundColor: "#fee2e2",
-    color: "#b91c1c",
+    backgroundColor: Colors.errorBg,
+    color: Colors.errorText,
     padding: 10,
     borderRadius: 8,
     marginBottom: 16,
@@ -333,14 +334,14 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     alignItems: "center",
     justifyContent: "center",
   },
-  title: { fontSize: 20, fontWeight: "700", color: "#16302b" },
+  title: { fontSize: 20, fontWeight: "700", color: Colors.primaryDark },
   headerSubtitle: {
     fontSize: 12,
-    color: "#8a8fa8",
+    color: Colors.textMuted,
     marginTop: 6,
     marginLeft: 50,
     marginBottom: 20,
@@ -348,7 +349,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#16302b",
+    color: Colors.primaryDark,
     marginBottom: 6,
     marginTop: 14,
   },
@@ -356,13 +357,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     borderRadius: 16,
     paddingHorizontal: 14,
   },
-  input: { flex: 1, paddingVertical: 13, fontSize: 14, color: "#16302b" },
+  input: { flex: 1, paddingVertical: 13, fontSize: 14, color: Colors.primaryDark },
   inputDisabled: {},
-  disabledText: { fontSize: 14, color: "#8a8fa8", paddingVertical: 13 },
+  disabledText: { fontSize: 14, color: Colors.textMuted, paddingVertical: 13 },
   typeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   typeCard: {
     width: "48%",
@@ -371,44 +372,44 @@ const styles = StyleSheet.create({
     gap: 8,
     borderRadius: 12,
     padding: 12,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     borderWidth: 1.5,
-    borderColor: "#fff",
+    borderColor: Colors.white,
   },
   typeCardSelected: {
-    backgroundColor: "#fdece0",
-    borderColor: "#d9601f",
+    backgroundColor: Colors.orangeTint,
+    borderColor: Colors.accentOrange,
   },
-  typeText: { fontSize: 12, fontWeight: "600", color: "#8a8fa8", flexShrink: 1 },
-  typeTextSelected: { color: "#d9601f" },
+  typeText: { fontSize: 12, fontWeight: "600", color: Colors.textMuted, flexShrink: 1 },
+  typeTextSelected: { color: Colors.accentOrange },
   row: { flexDirection: "row", gap: 12 },
   rowItem: { flex: 1 },
   infoBanner: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 10,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     borderRadius: 14,
     padding: 14,
     marginTop: 20,
   },
-  infoTitle: { fontSize: 12, fontWeight: "700", color: "#16302b" },
-  infoText: { fontSize: 11, color: "#8a8fa8", marginTop: 2, lineHeight: 15 },
+  infoTitle: { fontSize: 12, fontWeight: "700", color: Colors.primaryDark },
+  infoText: { fontSize: 11, color: Colors.textMuted, marginTop: 2, lineHeight: 15 },
   actions: { flexDirection: "row", gap: 10, marginTop: 20 },
   cancelButton: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     borderRadius: 28,
     paddingVertical: 15,
     alignItems: "center",
   },
-  cancelButtonText: { fontSize: 14, fontWeight: "600", color: "#16302b" },
+  cancelButtonText: { fontSize: 14, fontWeight: "600", color: Colors.primaryDark },
   submitButton: {
     flex: 1,
-    backgroundColor: "#d9601f",
+    backgroundColor: Colors.accentOrange,
     borderRadius: 28,
     paddingVertical: 15,
     alignItems: "center",
   },
-  submitButtonText: { fontSize: 14, fontWeight: "700", color: "#fff" },
+  submitButtonText: { fontSize: 14, fontWeight: "700", color: Colors.white },
 });

@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
+import { Colors } from "@/constants/colors";
 
 export default function PropertiesScreen() {
   return (
@@ -13,7 +14,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
   },
-  text: { fontSize: 14, color: "#5f5e5a" },
+  text: { fontSize: 14, color: Colors.textMutedDark },
 });

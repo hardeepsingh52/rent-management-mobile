@@ -107,7 +107,7 @@ export default function LoginScreen() {
         >
           <View style={styles.logoWrap}>
             <Image
-              source={require("@/assets/images/domouspro-logo.png")}
+              source={require("@/assets/images/domuspro-logo.png")}
               style={styles.logo}
               contentFit="contain"
             />

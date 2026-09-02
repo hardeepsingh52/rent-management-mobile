@@ -1,3 +1,4 @@
+import { Colors } from "@/constants/colors";
 import { getMyProperties } from "@/lib/properties-api";
 import { useSession } from "@/lib/session-context";
 import type { Property } from "@/lib/types";
@@ -79,7 +80,7 @@ export default function PropertiesScreen() {
                 <MaterialCommunityIcons
                   name="chevron-left"
                   size={18}
-                  color="#16302b"
+                  color={Colors.primaryDark}
                 />
               </Pressable>
               <Text style={styles.title}>Properties</Text>
@@ -94,7 +95,7 @@ export default function PropertiesScreen() {
                   <MaterialCommunityIcons
                     name="home-outline"
                     size={18}
-                    color="#d9601f"
+                    color={Colors.accentOrange}
                   />
                   <Text style={styles.statValue}>{properties.length}</Text>
                   <Text style={styles.statLabel}>Properties</Text>
@@ -103,7 +104,7 @@ export default function PropertiesScreen() {
                   <MaterialCommunityIcons
                     name="door"
                     size={18}
-                    color="#d9601f"
+                    color={Colors.accentOrange}
                   />
                   <Text style={styles.statValue}>{totalUnits}</Text>
                   <Text style={styles.statLabel}>Units</Text>
@@ -112,7 +113,7 @@ export default function PropertiesScreen() {
                   <MaterialCommunityIcons
                     name="map-marker-outline"
                     size={18}
-                    color="#d9601f"
+                    color={Colors.accentOrange}
                   />
                   <Text style={styles.statValue}>{totalCities}</Text>
                   <Text style={styles.statLabel}>Cities</Text>
@@ -126,7 +127,7 @@ export default function PropertiesScreen() {
                   <MaterialCommunityIcons
                     name="magnify"
                     size={16}
-                    color="#8a8fa8"
+                    color={Colors.textMuted}
                   />
                   <TextInput
                     style={styles.searchInput}
@@ -143,7 +144,7 @@ export default function PropertiesScreen() {
                   <MaterialCommunityIcons
                     name="tune-variant"
                     size={16}
-                    color="#16302b"
+                    color={Colors.primaryDark}
                   />
                 </Pressable>
               </View>
@@ -198,7 +199,7 @@ export default function PropertiesScreen() {
                   <MaterialCommunityIcons
                     name="map-marker-outline"
                     size={11}
-                    color="#8a8fa8"
+                    color={Colors.textMuted}
                   />
                   <Text style={styles.cardCity}>{item.city}</Text>
                 </View>
@@ -209,7 +210,7 @@ export default function PropertiesScreen() {
                 <MaterialCommunityIcons
                   name="door"
                   size={13}
-                  color="#d9601f"
+                  color={Colors.accentOrange}
                 />
                 <Text style={styles.pillText}>{item.units.length} Units</Text>
               </View>
@@ -217,7 +218,7 @@ export default function PropertiesScreen() {
                 <MaterialCommunityIcons
                   name="account-multiple-outline"
                   size={13}
-                  color="#d9601f"
+                  color={Colors.accentOrange}
                 />
                 {/* No tenant data tracked yet, so this is always 0. */}
                 <Text style={styles.pillText}>0 Tenants</Text>
@@ -225,7 +226,7 @@ export default function PropertiesScreen() {
               <MaterialCommunityIcons
                 name="chevron-right"
                 size={20}
-                color="#c7cad9"
+                color={Colors.borderLight}
               />
             </View>
           </Pressable>
@@ -236,7 +237,7 @@ export default function PropertiesScreen() {
               style={styles.addButton}
               onPress={() => router.push("/properties/new")}
             >
-              <MaterialCommunityIcons name="plus" size={16} color="#fff" />
+              <MaterialCommunityIcons name="plus" size={16} color={Colors.white} />
               <Text style={styles.addButtonText}>Add new property</Text>
             </Pressable>
           ) : null
@@ -248,7 +249,7 @@ export default function PropertiesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f6fa" },
+  container: { flex: 1, backgroundColor: Colors.background },
   listContent: { paddingBottom: 24 },
   header: { paddingHorizontal: 20, paddingTop: 12 },
   headerTop: { flexDirection: "row", alignItems: "center", gap: 12 },
@@ -256,33 +257,33 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     alignItems: "center",
     justifyContent: "center",
   },
-  title: { fontSize: 20, fontWeight: "700", color: "#16302b" },
-  subtitle: { fontSize: 12, color: "#8a8fa8", marginTop: 4, marginLeft: 44 },
+  title: { fontSize: 20, fontWeight: "700", color: Colors.primaryDark },
+  subtitle: { fontSize: 12, color: Colors.textMuted, marginTop: 4, marginLeft: 44 },
   statsRow: { flexDirection: "row", gap: 8, marginTop: 16 },
   statTile: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     borderRadius: 14,
     padding: 12,
   },
   statValue: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#16302b",
+    color: Colors.primaryDark,
     marginTop: 8,
   },
-  statLabel: { fontSize: 10, color: "#8a8fa8", marginTop: 1 },
+  statLabel: { fontSize: 10, color: Colors.textMuted, marginTop: 1 },
   searchRow: { flexDirection: "row", gap: 8, marginTop: 16 },
   search: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     borderRadius: 16,
     paddingHorizontal: 14,
   },
@@ -291,14 +292,14 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 16,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     alignItems: "center",
     justifyContent: "center",
   },
-  error: { color: "#b91c1c", fontSize: 13, marginTop: 16 },
-  empty: { color: "#5f5e5a", fontSize: 13, marginTop: 16 },
+  error: { color: Colors.errorText, fontSize: 13, marginTop: 16 },
+  empty: { color: Colors.textMutedDark, fontSize: 13, marginTop: 16 },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 12,
     marginHorizontal: 20,
@@ -317,16 +318,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
-  typeBadgeText: { fontSize: 8, fontWeight: "600", color: "#fff" },
+  typeBadgeText: { fontSize: 8, fontWeight: "600", color: Colors.white },
   cardInfo: { flex: 1, minWidth: 0 },
-  cardName: { fontSize: 14, fontWeight: "700", color: "#16302b" },
+  cardName: { fontSize: 14, fontWeight: "700", color: Colors.primaryDark },
   cardCityRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
     marginTop: 4,
   },
-  cardCity: { fontSize: 11, color: "#8a8fa8" },
+  cardCity: { fontSize: 11, color: Colors.textMuted },
   cardStatsRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -338,22 +339,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#f5f6fa",
+    backgroundColor: Colors.background,
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
-  pillText: { fontSize: 11, fontWeight: "600", color: "#16302b" },
+  pillText: { fontSize: 11, fontWeight: "600", color: Colors.primaryDark },
   addButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#d9601f",
+    backgroundColor: Colors.accentOrange,
     borderRadius: 28,
     paddingVertical: 15,
     marginHorizontal: 20,
     marginTop: 16,
   },
-  addButtonText: { fontSize: 13, fontWeight: "700", color: "#fff" },
+  addButtonText: { fontSize: 13, fontWeight: "700", color: Colors.white },
 });

@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
+import { Colors } from "@/constants/colors";
 import { useSession, useSessionContext } from "@/lib/session-context";
 
 export default function ProfileScreen() {
@@ -29,17 +30,17 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     gap: 6,
   },
-  name: { fontSize: 18, fontWeight: "600", color: "#111" },
-  email: { fontSize: 13, color: "#5f5e5a" },
+  name: { fontSize: 18, fontWeight: "600", color: Colors.primaryDark },
+  email: { fontSize: 13, color: Colors.textMutedDark },
   button: {
     marginTop: 20,
-    backgroundColor: "#fee2e2",
+    backgroundColor: Colors.errorBg,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 10,
   },
-  buttonText: { color: "#b91c1c", fontWeight: "600", fontSize: 14 },
+  buttonText: { color: Colors.errorText, fontWeight: "600", fontSize: 14 },
 });

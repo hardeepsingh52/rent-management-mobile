@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Colors } from "@/constants/colors";
 import { useSession } from "@/lib/session-context";
 import { getProperty } from "@/lib/properties-api";
 import type { Property, Unit } from "@/lib/types";
@@ -31,7 +32,9 @@ function propertyOccupancy(property: Property): number {
 }
 
 function unitStatusTint(status: string): string {
-  return status.toLowerCase() === "occupied" ? "#2f8a75" : "#d9601f";
+  return status.toLowerCase() === "occupied"
+    ? Colors.accentTeal
+    : Colors.accentOrange;
 }
 
 export default function PropertyDetailScreen() {
@@ -88,7 +91,7 @@ export default function PropertyDetailScreen() {
           <MaterialCommunityIcons
             name="chevron-left"
             size={22}
-            color="#16302b"
+            color={Colors.primaryDark}
           />
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>
@@ -103,7 +106,7 @@ export default function PropertyDetailScreen() {
             })
           }
         >
-          <MaterialCommunityIcons name="plus" size={22} color="#16302b" />
+          <MaterialCommunityIcons name="plus" size={22} color={Colors.primaryDark} />
         </Pressable>
       </View>
 
@@ -128,7 +131,7 @@ export default function PropertyDetailScreen() {
             <MaterialCommunityIcons
               name="map-marker-outline"
               size={14}
-              color="#8a8fa8"
+              color={Colors.textMuted}
             />
             <Text style={styles.addressText} numberOfLines={2}>
               {address}
@@ -142,7 +145,7 @@ export default function PropertyDetailScreen() {
             <MaterialCommunityIcons
               name="chevron-down"
               size={14}
-              color="#5f5e5a"
+              color={Colors.textMutedDark}
             />
           </Pressable>
         </View>
@@ -198,7 +201,7 @@ export default function PropertyDetailScreen() {
               })
             }
           >
-            <MaterialCommunityIcons name="plus" size={18} color="#d9601f" />
+            <MaterialCommunityIcons name="plus" size={18} color={Colors.accentOrange} />
             <Text style={styles.addUnitCardText}>Add Unit</Text>
           </Pressable>
         </ScrollView>
@@ -208,15 +211,15 @@ export default function PropertyDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f6fa" },
+  container: { flex: 1, backgroundColor: Colors.background },
   content: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 40 },
   centered: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f5f6fa",
+    backgroundColor: Colors.background,
   },
-  error: { color: "#b91c1c", fontSize: 14 },
+  error: { color: Colors.errorText, fontSize: 14 },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -229,7 +232,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -237,7 +240,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 17,
     fontWeight: "700",
-    color: "#16302b",
+    color: Colors.primaryDark,
     textAlign: "center",
     marginHorizontal: 10,
   },
@@ -252,7 +255,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
-  typeBadgeText: { fontSize: 11, fontWeight: "600", color: "#fff" },
+  typeBadgeText: { fontSize: 11, fontWeight: "600", color: Colors.white },
   addressRow: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -261,43 +264,43 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   addressTextWrap: { flex: 1, flexDirection: "row", gap: 4 },
-  addressText: { flex: 1, fontSize: 12, color: "#8a8fa8", lineHeight: 17 },
+  addressText: { flex: 1, fontSize: 12, color: Colors.textMuted, lineHeight: 17 },
   monthlyPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  monthlyPillText: { fontSize: 11, fontWeight: "600", color: "#5f5e5a" },
+  monthlyPillText: { fontSize: 11, fontWeight: "600", color: Colors.textMutedDark },
   sectionTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#16302b",
+    color: Colors.primaryDark,
     marginTop: 22,
     marginBottom: 12,
   },
   statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   statTile: {
     width: "47%",
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 14,
   },
-  statValue: { fontSize: 20, fontWeight: "700", color: "#16302b" },
-  statLabel: { fontSize: 11, color: "#8a8fa8", marginTop: 4 },
+  statValue: { fontSize: 20, fontWeight: "700", color: Colors.primaryDark },
+  statLabel: { fontSize: 11, color: Colors.textMuted, marginTop: 4 },
   sectionHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  unitsCount: { fontSize: 12, color: "#8a8fa8" },
-  empty: { color: "#5f5e5a", fontSize: 13 },
+  unitsCount: { fontSize: 12, color: Colors.textMuted },
+  empty: { color: Colors.textMutedDark, fontSize: 13 },
   unitsRow: { gap: 10, paddingBottom: 4 },
   unitCard: {
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     borderRadius: 14,
     paddingVertical: 14,
     paddingHorizontal: 18,
@@ -314,9 +317,9 @@ const styles = StyleSheet.create({
     minWidth: 84,
     borderWidth: 1.5,
     borderStyle: "dashed",
-    borderColor: "#d9601f",
+    borderColor: Colors.accentOrange,
   },
-  addUnitCardText: { fontSize: 11, fontWeight: "600", color: "#d9601f" },
-  unitLabel: { fontSize: 14, fontWeight: "700", color: "#16302b" },
+  addUnitCardText: { fontSize: 11, fontWeight: "600", color: Colors.accentOrange },
+  unitLabel: { fontSize: 14, fontWeight: "700", color: Colors.primaryDark },
   unitStatus: { fontSize: 10, fontWeight: "600", marginTop: 4 },
 });

@@ -1,3 +1,4 @@
+import { Colors } from "@/constants/colors";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
@@ -29,7 +30,7 @@ export default function OnboardingScreen() {
           <MaterialCommunityIcons
               name="arrow-top-right"
               size={18}
-              color="#fff"
+              color={Colors.white}
             />
             <Text style={styles.buttonText}>Get Started</Text>
           </Pressable>
@@ -40,11 +41,11 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#16302b" },
+  container: { flex: 1, backgroundColor: Colors.primaryDark },
   hero: { flex: 1, width: "100%" },
   cardWrapper: { position: "absolute", left: 0, right: 0, bottom: 0 },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     borderBottomRightRadius: 28,
@@ -59,13 +60,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#16302b",
+    color: Colors.primaryDark,
     lineHeight: 30,
     textAlign: "center",
   },
   subtitle: {
     fontSize: 13,
-    color: "#8a8fa8",
+    color: Colors.textMuted,
     marginTop: 12,
     lineHeight: 19,
     textAlign: "center",
@@ -75,10 +76,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#ff3131",
+    backgroundColor: Colors.brandRed,
     borderRadius: 28,
     paddingVertical: 16,
     marginTop: 22,
   },
-  buttonText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  buttonText: { color: Colors.white, fontSize: 15, fontWeight: "700" },
 });
