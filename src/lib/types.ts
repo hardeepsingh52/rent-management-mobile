@@ -6,6 +6,7 @@ export interface SessionUser {
   fullName: string;
   role: AppRole;
   token: string;
+  refreshToken: string;
 }
 
 export interface Unit {

@@ -26,6 +26,96 @@ lives there rather than being duplicated here.
 - **Canadian & Provincial Tenancy Law Compliance (Federal, Ontario, Manitoba)**: same standing
   requirement as the web repo — see this project's `AGENTS.md` for the full text.
 
+## 2026-09-01 — Claude (Mac) shipped refresh-token auth, first real-device run, finished color centralization
+
+- **First-ever real-device run**: `npx expo run:ios --device` onto a physical iPhone (Xcode already had a
+  free personal-team Apple ID signed in, no paid account needed, matching the 2026-08-28 entry's
+  prediction). One real environment issue hit and fixed: `pod install` crashed with a Ruby
+  `UnicodeNormalize` error because the shell's `LANG`/`LC_ALL` weren't set to UTF-8 — exporting
+  `LANG=en_US.UTF-8`/`LC_ALL=en_US.UTF-8` before the build fixed it. App installs and runs correctly on
+  device now.
+- **API_BASE_URL versioning + EAS build config** (`a95466a`, pushed): `api-client.ts` now centralizes the
+  backend URL into `API_BASE_URL` (`/api/v1`) instead of hardcoding `/api/` per call across
+  `auth-api.ts`/`properties-api.ts`/`property-types-api.ts`/`unit-types-api.ts`. Added `eas.json`
+  (Android APK preview profile) and an Android package id + EAS project id in `app.json`, for `eas
+  build`. This `/api/v1` prefix turned out to already match where the backend was headed (see below) —
+  lucky, not planned.
+- **Finished the color-centralization pass** started 2026-08-31: every remaining screen — dashboard
+  (`index.tsx`, the largest one), `properties.tsx`, `properties/new.tsx`, `properties/[id]/index.tsx`,
+  `properties/[id]/units/new.tsx`, `profile.tsx`, `tenants.tsx`, `onboarding.tsx`, `forgot-password.tsx`
+  — is now on `Colors.*` with zero raw hex left, `npx tsc --noEmit` clean. Folded in one more instance of
+  the already-known `#f4793a`-vs-`#d9601f` leftover-orange inconsistency (dashboard's notification dot +
+  chart bars). `forgot-password.tsx`'s old unrelated green success-banner colors were mapped onto the
+  existing `Colors.tealTint`/`Colors.accentTeal` tokens rather than adding new ones (no dedicated
+  "success" token exists yet). Left `constants/theme.ts`, `themed-text.tsx` (+ its only callers
+  `hint-row.tsx`/`web-badge.tsx`/`ui/collapsible.tsx`) and `animated-icon.tsx`'s unused `AnimatedIcon`/
+  gradient export alone — confirmed unreferenced anywhere in `src/app`, same precedent as the
+  2026-08-31 entry. The one live color in `animated-icon.tsx` (`AnimatedSplashOverlay`'s background) was
+  converted to `Colors.brandRed`.
+- **Backend shipped 15-minute access tokens + rotating refresh tokens with theft detection**
+  (`PropertyManagementRepo` commits `5e750bf`/`1394000`, confirmed live on both the local dev instance and
+  the Azure production backend used by `.env.local`). Real contract, read directly from
+  `AuthController.cs`/`AuthDtos.cs`/`JwtTokenService.cs`/`RefreshTokenCommand.cs`/
+  `RefreshTokenGenerator.cs` rather than guessed: `POST /api/v1/auth/refresh` (body `{RefreshToken}`) →
+  same `AuthResponse` shape as login with a newly-rotated `refreshToken`, or `401` +
+  `"Invalid or expired refresh token."` on failure. `POST /api/v1/auth/logout` revokes a token
+  server-side. Access token: 15 min. Refresh token: 30 days, single-use (reusing an already-rotated one
+  revokes every active token for that user).
+- **Implemented the mobile side, closing the gap flagged in the 2026-08-31 entry**: `SessionUser` gained
+  `refreshToken`; `auth-api.ts` gained `refreshAccessToken`/`logout`; `api-client.ts`'s `backendFetch` now
+  retries once on `401` via a shared module-level `refreshPromise` so concurrent 401s across screens
+  share a single real refresh call (required, since the refresh token is single-use/rotating —
+  independent concurrent refreshes would trigger the backend's theft detection); `session-context.tsx`
+  wires the refresh handler and keeps the biometric-login cache in sync on every rotation (was previously
+  only written once, at password-login time — see the Face ID bug below).
+- **Real bug found and fixed during verification**: `forgotPassword` was dropped from `auth-api.ts` when
+  the refresh-token rewrite landed, breaking `forgot-password.tsx`'s import — caught by `tsc --noEmit`,
+  restored unchanged.
+- **Real bug found, root-caused live on-device, and fixed: Face ID login was structurally unreachable.**
+  `signOut()` unconditionally cleared the biometric cache on every sign-out (added 2026-08-31, intended
+  only for the reactive/expired case). Since the login screen is *only* ever reached via `signOut()`,
+  there was no path back to it where a valid cache still existed — Face ID could never show, regardless
+  of the refresh-token work. Root-caused by temporarily adding `console.log`s to `login.tsx`/
+  `session-context.tsx` and reading them back via the Metro dev-server's `.expo/dev/logs/start.log`
+  (`metro:client_log` events) — no way to inspect a physical device's console output directly, but this
+  file gave full visibility without needing the device screen. Logging removed once diagnosed.
+- **Design decision on the fix — `signOut(reason: "manual" | "expired")`**: manual sign-out
+  (Profile button, defaults to `"manual"`) now only clears the local session, leaving the server-side
+  refresh token and biometric cache alone so Face ID still works next time. Reactive sign-out (401 →
+  refresh itself fails) passes `"expired"`, which also revokes the refresh token server-side
+  (`POST /auth/logout`) and clears the biometric cache. Verified end-to-end on the physical device: sign
+  out → Face ID → back on the dashboard, no password re-entry.
+- **Real gap found and fixed: a network failure during refresh was forcing an unnecessary sign-out.**
+  `backendFetch`'s catch-all around the refresh attempt treated *any* thrown error identically —
+  including a dropped connection, not just an actually-invalid token. Added `InvalidRefreshTokenError` (a
+  dedicated `Error` subclass, thrown by `auth-api.ts`'s `refreshAccessToken` only on an actual `401` from
+  `/auth/refresh`) and narrowed `api-client.ts`'s catch to only call `onUnauthorized` for that specific
+  type — a plain network error/timeout/500 now just fails the current screen's request without touching
+  the session.
+- **Known, deliberately unresolved gap — flagged, not fixed this session**: the `"manual"` sign-out path
+  above has a real security hole on a *shared/borrowed* device — the refresh token stays valid
+  server-side and the biometric cache stays intact after "Sign out," so whoever else can pass Face ID on
+  that same physical device (i.e., its actual owner) could still restore the signed-out user's session.
+  Discussed at length with the user; landed on the real fix being an architectural one, not a tweak:
+  **the current biometric flow conflates "replace login" with what should be a separate "app lock"
+  concept.** The app already has no lock screen of any kind today — reopening it after backgrounding
+  skips authentication entirely via the persisted SecureStore session (`getSession()` on launch). The
+  proposed redesign: decouple Face ID from sign-out entirely; track a separate `isLocked` boolean gated
+  by `AppState` background/foreground transitions, which only *reveals* an already-valid session
+  (no token/session changes at all) rather than restoring one from a cached snapshot. Under that design,
+  sign-out can safely always revoke everything (no more `"manual"`/`"expired"` split needed) without
+  making Face ID pointless, since Face ID's real job becomes gating app reopen, not surviving sign-out.
+  **Not scoped or built — explicitly deferred by the user this session.**
+- Separately noted (session memory, not yet relevant enough for this file): refresh-token storage on the
+  web build stays in `localStorage` rather than moving to memory-only/httpOnly-cookie, since this repo's
+  web output only ever appears to be used as a dev-preview loop, not shipped to real users — revisit if
+  that ever changes.
+- **Next step**: two independent pieces left, either order — (1) land the sign-out revocation fix
+  (revoke server-side + clear biometric cache on *every* sign-out, accepting Face ID goes back to
+  "doesn't survive sign-out" until app-lock exists), and/or (2) scope and build the app-lock redesign
+  itself (`AppState` listener, `isLocked` state, a lock screen component, Face ID as a pure gate). Either
+  fully closes the shared-device gap; only the second actually restores Face ID's everyday usefulness.
+
 ## 2026-08-31 — Claude (Windows) added session-expiry handling and started centralizing colors
 
 - **Real bug found and fixed: expired login token never signed the user out.** There
