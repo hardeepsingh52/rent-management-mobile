@@ -1,6 +1,7 @@
+import { SideMenu } from "@/components/side-menu";
 import { Colors } from "@/constants/colors";
 import { getMyProperties } from "@/lib/properties-api";
-import { useSession } from "@/lib/session-context";
+import { useSession, useSessionContext } from "@/lib/session-context";
 import type { Property } from "@/lib/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -11,6 +12,7 @@ import {
   FlatList,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -31,23 +33,47 @@ function comingSoon(feature: string) {
   Alert.alert("Coming soon", `${feature} isn't wired up yet.`);
 }
 
-// No vacancy status is tracked per unit yet, so occupancy is a placeholder:
-// any property with units counts as fully occupied.
-function propertyOccupancy(property: Property): number {
-  return property.units.length > 0 ? 100 : 0;
+function RentPeriodRow({
+  title,
+  percentLabel,
+  percent,
+  collected,
+  outstanding,
+}: {
+  title: string;
+  percentLabel: string;
+  percent: number;
+  collected: string;
+  outstanding: string;
+}) {
+  return (
+    <View>
+      <View style={styles.rentPeriodHeaderRow}>
+        <Text style={styles.rentPeriodTitle}>{title}</Text>
+        <Text style={styles.rentPeriodCaption}>{percentLabel}</Text>
+      </View>
+      <View style={styles.rentProgressTrack}>
+        <View style={[styles.rentProgressFill, { width: `${percent}%` }]} />
+      </View>
+      <View style={styles.rentValuesRow}>
+        <View style={styles.rentValueCol}>
+          <View style={styles.rentValueLabelRow}>
+            <View style={[styles.rentDot, styles.rentDotCollected]} />
+            <Text style={styles.rentValueLabel}>Collected</Text>
+          </View>
+          <Text style={styles.rentValueAmount}>{collected}</Text>
+        </View>
+        <View style={styles.rentValueCol}>
+          <View style={styles.rentValueLabelRow}>
+            <View style={[styles.rentDot, styles.rentDotOutstanding]} />
+            <Text style={styles.rentValueLabel}>Outstanding</Text>
+          </View>
+          <Text style={styles.rentValueAmount}>{outstanding}</Text>
+        </View>
+      </View>
+    </View>
+  );
 }
-
-// Decorative bar heights for the Occupancy Rates chart — there's no historical
-// occupancy time series in the backend yet, so this isn't real month-over-month
-// data, just a placeholder shape matching the design until that exists.
-const OCCUPANCY_CHART_BARS = [
-  { month: "Feb", height: 58 },
-  { month: "Mar", height: 96 },
-  { month: "Apr", height: 78 },
-  { month: "May", height: 108 },
-  { month: "Jun", height: 90 },
-  { month: "Jul", height: 118 },
-];
 
 export default function DashboardScreen() {
   const user = useSession();
@@ -55,7 +81,14 @@ export default function DashboardScreen() {
   const [properties, setProperties] = useState<Property[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const { signOut } = useSessionContext();
+  const [menuOpen, setMenuOpen] = useState(false);
 
+  async function handleSignOut() {
+    setMenuOpen(false);
+    await signOut();
+    router.replace("/(auth)/login");
+  }
   const load = useCallback(async () => {
     try {
       setError(null);
@@ -85,7 +118,7 @@ export default function DashboardScreen() {
     (sum, p) => sum + p.units.length,
     0,
   );
-  // Placeholder, same reasoning as propertyOccupancy: no vacancy tracking yet.
+  // No vacancy status is tracked per unit yet, so every unit counts as occupied.
   const occupiedUnits = totalUnits;
 
   return (
@@ -99,15 +132,9 @@ export default function DashboardScreen() {
         ListHeaderComponent={
           <View>
             <View style={styles.header}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {getInitials(user.fullName)}
-                </Text>
-              </View>
-              <View style={styles.headerCenter}>
-                <Text style={styles.name}>{user.fullName}</Text>
-                <Text style={styles.role}>{user.role}</Text>
-              </View>
+              <Pressable style={styles.iconButton} onPress={() => setMenuOpen(true)}>
+                <MaterialCommunityIcons name="menu" size={20} color={Colors.primaryDark} />
+              </Pressable>
               <View style={styles.headerRight}>
                 <Pressable
                   style={styles.iconButton}
@@ -131,91 +158,123 @@ export default function DashboardScreen() {
                   <View style={styles.bellDot} />
                 </Pressable>
               </View>
+              <View style={styles.logoWrap} pointerEvents="none">
+                <Text style={styles.logoText}>
+                  Domus<Text style={styles.logoTextAccent}>PRO</Text>
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.profileRow}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {getInitials(user.fullName)}
+                </Text>
+              </View>
+              <View>
+                <Text style={styles.name}>{user.fullName}</Text>
+                <Text style={styles.role}>{user.role}</Text>
+              </View>
             </View>
 
             <Text style={styles.screenSectionTitle}>Property Summary</Text>
-            <View style={styles.statsGrid}>
-              <View style={styles.statTile}>
-                <MaterialCommunityIcons
-                  name="home-city-outline"
-                  size={20}
-                  color={Colors.accentOrange}
-                />
-                <Text style={styles.statLabel}>Properties</Text>
-                <Text style={styles.statValue}>{totalProperties}</Text>
-              </View>
-              <View style={styles.statTile}>
-                <MaterialCommunityIcons
-                  name="door-open"
-                  size={20}
-                  color={Colors.accentOrange}
-                />
-                <Text style={styles.statLabel}>Occupied</Text>
-                <Text style={styles.statValue}>
-                  {occupiedUnits}
-                  <Text style={styles.statValueMuted}>/{totalUnits}</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.statsScroll}
+            >
+              <View style={[styles.statTile, { backgroundColor: Colors.greenDark }]}>
+                <View style={styles.statTopRow}>
+                  <MaterialCommunityIcons
+                    name="home-city-outline"
+                    size={15}
+                    color={Colors.tealTint}
+                  />
+                  <Text style={[styles.statLabel, { color: Colors.tealTint }]}>
+                    Properties
+                  </Text>
+                </View>
+                <Text style={[styles.statValue, { color: Colors.white }]}>
+                  {totalProperties}
                 </Text>
               </View>
-              <View style={styles.statTile}>
-                <MaterialCommunityIcons
-                  name="cash-multiple"
-                  size={20}
-                  color={Colors.accentOrange}
-                />
-                <Text style={styles.statLabel}>Rent Collected</Text>
-                <Text style={styles.statValue}>—</Text>
-              </View>
-              <View style={styles.statTile}>
-                <MaterialCommunityIcons
-                  name="wrench-outline"
-                  size={20}
-                  color={Colors.accentOrange}
-                />
-                <Text style={styles.statLabel}>Maint. Request</Text>
-                <Text style={styles.statValue}>0</Text>
-              </View>
-            </View>
-
-            <View style={styles.chartCard}>
-              <View style={styles.chartHeaderRow}>
-                <Text style={styles.sectionTitle}>Occupancy Rates</Text>
-                <Pressable
-                  style={styles.monthlyPill}
-                  onPress={() => comingSoon("Date range filter")}
-                >
-                  <Text style={styles.monthlyPillText}>Monthly</Text>
+              <View style={[styles.statTile, { backgroundColor: Colors.accentOrange }]}>
+                <View style={styles.statTopRow}>
                   <MaterialCommunityIcons
-                    name="chevron-down"
-                    size={14}
-                    color={Colors.textMutedDark}
+                    name="door-open"
+                    size={15}
+                    color={Colors.orangeTint}
                   />
-                </Pressable>
-              </View>
-              <View style={styles.chartRow}>
-                <View style={styles.chartAxis}>
-                  <Text style={styles.chartAxisLabel}>100%</Text>
-                  <Text style={styles.chartAxisLabel}>70%</Text>
-                  <Text style={styles.chartAxisLabel}>50%</Text>
-                  <Text style={styles.chartAxisLabel}>10%</Text>
+                  <Text style={[styles.statLabel, { color: Colors.orangeTint }]}>
+                    Occupied
+                  </Text>
                 </View>
-                <View style={styles.chartBars}>
-                  {OCCUPANCY_CHART_BARS.map((bar) => (
-                    <View key={bar.month} style={styles.chartBarColumn}>
-                      <View style={[styles.chartBar, { height: bar.height }]} />
-                      <Text style={styles.chartBarLabel}>{bar.month}</Text>
-                    </View>
-                  ))}
-                </View>
+                <Text style={[styles.statValue, { color: Colors.white }]}>
+                  {occupiedUnits}
+                  <Text style={[styles.statValueMuted, { color: Colors.orangeTint }]}>
+                    /{totalUnits}
+                  </Text>
+                </Text>
               </View>
+              <View style={[styles.statTile, { backgroundColor: Colors.purple }]}>
+                <View style={styles.statTopRow}>
+                  <MaterialCommunityIcons
+                    name="wrench-outline"
+                    size={15}
+                    color={Colors.purpleTint}
+                  />
+                  <Text style={[styles.statLabel, { color: Colors.purpleTint }]}>
+                    Maint.
+                  </Text>
+                </View>
+                <Text style={[styles.statValue, { color: Colors.white }]}>0</Text>
+              </View>
+              <View style={[styles.statTile, { backgroundColor: Colors.accentBlue }]}>
+                <View style={styles.statTopRow}>
+                  <MaterialCommunityIcons
+                    name="alert-circle-outline"
+                    size={15}
+                    color={Colors.blueTint}
+                  />
+                  <Text style={[styles.statLabel, { color: Colors.blueTint }]}>
+                    Vacancy
+                  </Text>
+                </View>
+                <Text style={[styles.statValue, { color: Colors.white }]}>0</Text>
+              </View>
+            </ScrollView>
+
+            <Text style={styles.screenSectionTitle}>Rent Overview</Text>
+            <View style={styles.rentOverviewCard}>
+              {/* No rent-tracking backend exists yet, so both periods show an
+                  honest "no data" state instead of a fabricated percentage —
+                  same reasoning as the Rent Collected stat tile above. Once
+                  real data exists, compute percent/collected/outstanding per
+                  period and pass those in instead. */}
+              <RentPeriodRow
+                title="Last month"
+                percentLabel="No data yet"
+                percent={0}
+                collected="—"
+                outstanding="—"
+              />
+              <View style={styles.rentDivider} />
+              <RentPeriodRow
+                title="This month"
+                percentLabel="No data yet"
+                percent={0}
+                collected="—"
+                outstanding="—"
+              />
             </View>
 
-            <View style={styles.sectionHeaderRow}>
+            {/* <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>Recent Activity</Text>
               <Pressable onPress={() => comingSoon("Activity history")}>
                 <Text style={styles.viewAllLink}>View all →</Text>
               </Pressable>
             </View>
-            <Text style={styles.empty}>No recent activity yet.</Text>
+            <Text style={styles.empty}>No recent activity yet.</Text> */}
 
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>My Properties</Text>
@@ -233,72 +292,39 @@ export default function DashboardScreen() {
             )}
           </View>
         }
-        renderItem={({ item }) => {
-          const occupancy = propertyOccupancy(item);
-          return (
-            <Pressable
-              style={styles.propertyCard}
-              onPress={() =>
-                router.push({
-                  pathname: "/properties/[id]",
-                  params: { id: String(item.id) },
-                })
-              }
-            >
-              <View style={styles.propertyPhoto}>
-                <MaterialCommunityIcons
-                  name="home-city-outline"
-                  size={26}
-                  color={Colors.accentOrange}
-                />
-              </View>
-              <View style={styles.propertyInfo}>
-                <View style={styles.propertyTopRow}>
-                  <Text style={styles.propertyName}>{item.line1}</Text>
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>Active</Text>
-                  </View>
-                </View>
-                <View style={styles.propertyCityRow}>
-                  <MaterialCommunityIcons
-                    name="map-marker-outline"
-                    size={12}
-                    color={Colors.textMuted}
-                  />
-                  <Text style={styles.propertyCity}>{item.city}</Text>
-                </View>
-                <View style={styles.propertyStatsRow}>
-                  <View style={styles.propertyStat}>
-                    <MaterialCommunityIcons
-                      name="account-multiple-outline"
-                      size={14}
-                      color={Colors.textMutedDark}
-                    />
-                    <Text style={styles.propertyStatValue}>0</Text>
-                  </View>
-                  <View style={styles.propertyStat}>
-                    <MaterialCommunityIcons
-                      name="door"
-                      size={14}
-                      color={Colors.textMutedDark}
-                    />
-                    <Text style={styles.propertyStatValue}>
-                      {item.units.length}
-                    </Text>
-                  </View>
-                  <View style={styles.occupancyRing}>
-                    <Text style={styles.occupancyRingText}>{occupancy}%</Text>
-                  </View>
-                </View>
-              </View>
+        
+                renderItem={({ item }) => (
+          <Pressable
+            style={styles.propertyCard}
+            onPress={() =>
+              router.push({
+                pathname: "/properties/[id]",
+                params: { id: String(item.id) },
+              })
+            }
+          >
+            <View style={styles.propertyPhoto}>
               <MaterialCommunityIcons
-                name="chevron-right"
+                name="home-city-outline"
                 size={20}
-                color={Colors.borderLight}
+                color={Colors.accentOrange}
               />
-            </Pressable>
-          );
-        }}
+            </View>
+            <View style={styles.propertyInfo}>
+              <Text style={styles.propertyName} numberOfLines={1}>
+                {item.line1}
+              </Text>
+              <Text style={styles.propertyCity}>
+                {item.city} · {item.units.length} unit
+                {item.units.length === 1 ? "" : "s"}
+              </Text>
+            </View>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>Active</Text>
+            </View>
+          </Pressable>
+        )}
+
         ListFooterComponent={
           properties && properties.length > 0 ? (
             <View style={styles.quickActions}>
@@ -379,6 +405,14 @@ export default function DashboardScreen() {
         }
         contentContainerStyle={styles.listContent}
       />
+
+            <SideMenu
+        visible={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        onNavigate={(path) => router.push(path)}
+        onSignOut={handleSignOut}
+        role={user.role}
+      />
     </SafeAreaView>
   );
 }
@@ -387,11 +421,31 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   listContent: { paddingBottom: 24 },
   header: {
+    position: "relative",
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 18,
     paddingTop: 12,
     paddingBottom: 18,
+  },
+  logoWrap: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoText: { fontSize: 18, fontWeight: "700", color: Colors.primaryDark },
+  logoTextAccent: { color: Colors.brandRed },
+  profileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 18,
+    marginBottom: 16,
   },
   avatar: {
     width: 42,
@@ -402,7 +456,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarText: { fontSize: 14, fontWeight: "600", color: Colors.white },
-  headerCenter: { flex: 1, marginLeft: 12 },
   name: { fontSize: 16, fontWeight: "700", color: Colors.primaryDark },
   role: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 10 },
@@ -430,57 +483,60 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     marginBottom: 12,
   },
-  statsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    paddingHorizontal: 18,
-    marginBottom: 20,
-  },
+  statsScroll: { gap: 8, paddingHorizontal: 18, marginBottom: 20 },
   statTile: {
-    width: "47%",
-    backgroundColor: Colors.white,
+    width: 100,
+    height: 80,
     borderRadius: 16,
-    padding: 14,
+    padding: 12,
+    justifyContent: "space-between",
   },
-  statLabel: { fontSize: 11, color: Colors.textMuted, marginTop: 8 },
-  statValue: { fontSize: 20, fontWeight: "700", color: Colors.primaryDark, marginTop: 2 },
-  statValueMuted: { fontSize: 14, fontWeight: "500", color: Colors.borderLighter },
-  chartCard: {
+  statTopRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  statLabel: { fontSize: 10 },
+  statValue: { fontSize: 17, fontWeight: "700" },
+  statValueMuted: { fontSize: 12, fontWeight: "500" },
+  rentOverviewCard: {
     backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 16,
     marginHorizontal: 18,
     marginBottom: 20,
   },
-  chartHeaderRow: {
+  rentPeriodHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
+    alignItems: "baseline",
+    marginBottom: 8,
   },
-  monthlyPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: Colors.background,
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+  rentPeriodTitle: { fontSize: 12, fontWeight: "600", color: Colors.primaryDark },
+  rentPeriodCaption: { fontSize: 10, color: Colors.textMuted },
+  rentProgressTrack: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.orangeTint,
+    overflow: "hidden",
+    marginBottom: 10,
   },
-  monthlyPillText: { fontSize: 11, fontWeight: "600", color: Colors.textMutedDark },
-  chartRow: { flexDirection: "row", alignItems: "flex-end", gap: 12 },
-  chartAxis: { justifyContent: "space-between", height: 120, marginBottom: 18 },
-  chartAxisLabel: { fontSize: 10, color: Colors.borderLighter },
-  chartBars: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
+  rentProgressFill: {
+    height: "100%",
+    borderRadius: 4,
+    backgroundColor: Colors.greenDark,
   },
-  chartBarColumn: { alignItems: "center", gap: 6 },
-  chartBar: { width: 16, borderRadius: 6, backgroundColor: Colors.accentOrange },
-  chartBarLabel: { fontSize: 10, color: Colors.textMuted },
+  rentValuesRow: { flexDirection: "row", gap: 8 },
+  rentValueCol: { flex: 1 },
+  rentValueLabelRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  rentValueLabel: { fontSize: 10, color: Colors.textMutedDark },
+  rentValueAmount: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: Colors.primaryDark,
+    marginTop: 2,
+    marginLeft: 11,
+  },
+  rentDot: { width: 6, height: 6, borderRadius: 3 },
+  rentDotCollected: { backgroundColor: Colors.greenDark },
+  rentDotOutstanding: { backgroundColor: Colors.accentOrange },
+  rentDivider: { height: 1, backgroundColor: Colors.divider, marginVertical: 16 },
   sectionHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -504,51 +560,22 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   propertyPhoto: {
-    width: 64,
-    height: 64,
+    width: 44,
+    height: 44,
     borderRadius: 12,
     backgroundColor: Colors.orangeTint,
     alignItems: "center",
     justifyContent: "center",
   },
   propertyInfo: { flex: 1, minWidth: 0 },
-  propertyTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
   propertyName: { fontSize: 14, fontWeight: "700", color: Colors.primaryDark },
-  propertyCityRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    marginTop: 2,
-  },
-  propertyCity: { fontSize: 11, color: Colors.textMuted },
-  propertyStatsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    marginTop: 8,
-  },
-  propertyStat: { flexDirection: "row", alignItems: "center", gap: 4 },
-  propertyStatValue: { fontSize: 12, fontWeight: "600", color: Colors.textMutedDark },
-  occupancyRing: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 2,
-    borderColor: Colors.accentTeal,
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: "auto",
-  },
-  occupancyRingText: { fontSize: 9, fontWeight: "700", color: Colors.accentTeal },
+  propertyCity: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
   badge: {
     backgroundColor: Colors.tealTint,
     borderRadius: 20,
     paddingHorizontal: 9,
     paddingVertical: 4,
+    flexShrink: 0,
   },
   badgeText: { fontSize: 10, fontWeight: "600", color: Colors.accentTeal },
   quickActions: { paddingHorizontal: 18, marginTop: 10 },

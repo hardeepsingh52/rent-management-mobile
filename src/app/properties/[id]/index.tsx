@@ -1,29 +1,20 @@
-import { useCallback, useState } from "react";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { Colors } from "@/constants/colors";
+import { getProperty } from "@/lib/properties-api";
+import { useSession } from "@/lib/session-context";
+import type { Property, Unit } from "@/lib/types";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors } from "@/constants/colors";
-import { useSession } from "@/lib/session-context";
-import { getProperty } from "@/lib/properties-api";
-import type { Property, Unit } from "@/lib/types";
-
-function comingSoon(feature: string) {
-  Alert.alert("Coming soon", `${feature} isn't wired up yet.`);
-}
-
-function formatPropertyType(type: string): string {
-  return type.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
-}
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // No vacancy status is tracked per property yet, so occupancy is a placeholder:
 // any property with units counts as fully occupied. Same logic as the dashboard.
@@ -35,6 +26,12 @@ function unitStatusTint(status: string): string {
   return status.toLowerCase() === "occupied"
     ? Colors.accentTeal
     : Colors.accentOrange;
+}
+
+function unitStatusBg(status: string): string {
+  return status.toLowerCase() === "occupied"
+    ? Colors.tealTint
+    : Colors.orangeTint;
 }
 
 export default function PropertyDetailScreen() {
@@ -76,13 +73,7 @@ export default function PropertyDetailScreen() {
     );
   }
 
-  const address = [
-    property.line1,
-    property.line2,
-    `${property.city}, ${property.region} ${property.postalCode}`,
-  ]
-    .filter(Boolean)
-    .join(", ");
+    
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -111,7 +102,7 @@ export default function PropertyDetailScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.photoWrap}>
+                <View style={styles.photoWrap}>
           {/* No property-photo feature exists in the backend yet, so every
               property uses the same placeholder image. */}
           <Image
@@ -119,35 +110,21 @@ export default function PropertyDetailScreen() {
             style={styles.photo}
             contentFit="cover"
           />
-          <View style={styles.typeBadge}>
-            <Text style={styles.typeBadgeText}>
-              {formatPropertyType(property.propertyType)}
-            </Text>
-          </View>
         </View>
 
-        <View style={styles.addressRow}>
-          <View style={styles.addressTextWrap}>
-            <MaterialCommunityIcons
-              name="map-marker-outline"
-              size={14}
-              color={Colors.textMuted}
-            />
-            <Text style={styles.addressText} numberOfLines={2}>
-              {address}
+        <View style={styles.propertyInfoCard}>
+          <View style={styles.propertyInfoText}>
+            <Text style={styles.propertyInfoName} numberOfLines={1}>
+              {property.line1}
+            </Text>
+            <Text style={styles.propertyInfoSubtitle}>
+              {property.city} · {property.units.length} unit
+              {property.units.length === 1 ? "" : "s"}
             </Text>
           </View>
-          <Pressable
-            style={styles.monthlyPill}
-            onPress={() => comingSoon("Date range filter")}
-          >
-            <Text style={styles.monthlyPillText}>Monthly</Text>
-            <MaterialCommunityIcons
-              name="chevron-down"
-              size={14}
-              color={Colors.textMutedDark}
-            />
-          </Pressable>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>Active</Text>
+          </View>
         </View>
 
         <Text style={styles.sectionTitle}>Summary</Text>
@@ -174,37 +151,54 @@ export default function PropertyDetailScreen() {
           <Text style={styles.sectionTitle}>List of Units</Text>
           <Text style={styles.unitsCount}>{property.units.length} Units</Text>
         </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.unitsRow}
-        >
+        <View style={styles.unitsList}>
           {property.units.map((unit: Unit) => (
-            <View key={unit.id} style={styles.unitCard}>
-              <Text style={styles.unitLabel}>{unit.label}</Text>
-              <Text
+            <Pressable
+              key={unit.id}
+              style={styles.unitCard}
+              onPress={() =>
+                router.push({
+                  pathname: "/properties/[id]/units/[unitId]",
+                  params: { id, unitId: String(unit.id) },
+                })
+              }
+            >
+              <View>
+                <Text style={styles.unitLabel}>{unit.label}</Text>
+                <Text style={styles.unitBeds}>
+                  {unit.bedrooms} bed · {unit.bathrooms} bath
+                </Text>
+              </View>
+              <View
                 style={[
-                  styles.unitStatus,
-                  { color: unitStatusTint(unit.status) },
+                  styles.unitStatusPill,
+                  { backgroundColor: unitStatusBg(unit.status) },
                 ]}
               >
-                {unit.status}
-              </Text>
-            </View>
+                <Text
+                  style={[
+                    styles.unitStatusText,
+                    { color: unitStatusTint(unit.status) },
+                  ]}
+                >
+                  {unit.status}
+                </Text>
+              </View>
+            </Pressable>
           ))}
-          <Pressable
-            style={styles.addUnitCard}
-            onPress={() =>
-              router.push({
-                pathname: "/properties/[id]/units/new",
-                params: { id },
-              })
-            }
-          >
-            <MaterialCommunityIcons name="plus" size={18} color={Colors.accentOrange} />
-            <Text style={styles.addUnitCardText}>Add Unit</Text>
-          </Pressable>
-        </ScrollView>
+        </View>
+        <Pressable
+          style={styles.addUnitLink}
+          onPress={() =>
+            router.push({
+              pathname: "/properties/[id]/units/new",
+              params: { id },
+            })
+          }
+        >
+          <MaterialCommunityIcons name="plus" size={14} color={Colors.accentOrange} />
+          <Text style={styles.addUnitLinkText}>Add unit</Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -241,40 +235,11 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "700",
     color: Colors.primaryDark,
-    textAlign: "center",
+    textAlign: "left",
     marginHorizontal: 10,
   },
   photoWrap: { position: "relative" },
   photo: { width: "100%", height: 190, borderRadius: 18 },
-  typeBadge: {
-    position: "absolute",
-    left: 10,
-    bottom: 10,
-    backgroundColor: "rgba(22, 48, 43, 0.85)",
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  typeBadgeText: { fontSize: 11, fontWeight: "600", color: Colors.white },
-  addressRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 10,
-    marginTop: 14,
-  },
-  addressTextWrap: { flex: 1, flexDirection: "row", gap: 4 },
-  addressText: { flex: 1, fontSize: 12, color: Colors.textMuted, lineHeight: 17 },
-  monthlyPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: Colors.white,
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  monthlyPillText: { fontSize: 11, fontWeight: "600", color: Colors.textMutedDark },
   sectionTitle: {
     fontSize: 15,
     fontWeight: "700",
@@ -298,28 +263,46 @@ const styles = StyleSheet.create({
   },
   unitsCount: { fontSize: 12, color: Colors.textMuted },
   empty: { color: Colors.textMutedDark, fontSize: 13 },
-  unitsRow: { gap: 10, paddingBottom: 4 },
+    propertyInfoCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: 12,
+    marginTop: 10,
+  },
+  propertyInfoText: { flex: 1, minWidth: 0 },
+  propertyInfoName: { fontSize: 14, fontWeight: "700", color: Colors.primaryDark },
+  propertyInfoSubtitle: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
+  badge: {
+    backgroundColor: Colors.tealTint,
+    borderRadius: 20,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  badgeText: { fontSize: 10, fontWeight: "600", color: Colors.accentTeal },
+  unitsList: { gap: 10 },
   unitCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     backgroundColor: Colors.white,
     borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    alignItems: "center",
-    minWidth: 84,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
   },
-    addUnitCard: {
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
+  unitBeds: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
+  unitStatusPill: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 },
+  unitStatusText: { fontSize: 10, fontWeight: "600" },
+  addUnitLink: {
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 4,
-    minWidth: 84,
-    borderWidth: 1.5,
-    borderStyle: "dashed",
-    borderColor: Colors.accentOrange,
+    paddingVertical: 10,
+    marginTop: 4,
   },
-  addUnitCardText: { fontSize: 11, fontWeight: "600", color: Colors.accentOrange },
+  addUnitLinkText: { fontSize: 12, fontWeight: "600", color: Colors.accentOrange },
   unitLabel: { fontSize: 14, fontWeight: "700", color: Colors.primaryDark },
-  unitStatus: { fontSize: 10, fontWeight: "600", marginTop: 4 },
 });

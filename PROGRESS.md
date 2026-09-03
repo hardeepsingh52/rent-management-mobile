@@ -26,6 +26,98 @@ lives there rather than being duplicated here.
 - **Canadian & Provincial Tenancy Law Compliance (Federal, Ontario, Manitoba)**: same standing
   requirement as the web repo — see this project's `AGENTS.md` for the full text.
 
+## 2026-09-02 — Claude (Mac) redesigned dashboard/property/unit screens against a reference layout, added drawer navigation
+
+- **Design process**: worked from a reference mockup image (external design tool screenshots) the user
+  supplied for Login/Dashboard/Property Detail/Add Unit, plus a separate side-drawer-menu reference —
+  explicitly *layout only*, never the reference's own visual style. Every screen below was mocked with
+  the `visualize` tool first, iterated on with the user, then implemented in this app's own `Colors.*`
+  palette (`src/constants/colors.ts`) — no new hex values introduced anywhere in this pass.
+- **Dashboard (`(tabs)/index.tsx`) rebuilt**:
+  - "Property Summary" changed from a wrapping 2×2 white-tile grid to a horizontally-scrolling row of
+    four fully-saturated color cards (`greenDark`/`accentOrange`/`purple`/`accentBlue`), each icon+label
+    on top and the value bottom-left, sized (`flex` width 100) so ~3 are visible with the 4th peeking to
+    hint scrollability. The old "Rent Collected" tile (always "—", now redundant with the new Rent
+    Overview card below) was replaced with **"Vacancy"** — chosen deliberately over Rent Collected again
+    or a generic placeholder, per user's own call.
+  - Added a **Rent Overview card** below the stats: "Last month" / "This month", each with a progress
+    bar (`accentOrange` track, `greenDark` fill) and Collected/Outstanding figures in a two-column
+    layout. Both periods currently show an honest "No data yet" / "—" state — no rent-tracking backend
+    exists yet, same reasoning as the old Rent Collected tile. A small reusable `RentPeriodRow`
+    component avoids duplicating the ~20-line block for both periods. Its section heading was later
+    unified to reuse `screenSectionTitle` (same size/weight/color as "Property Summary") instead of a
+    separate all-caps muted label style.
+  - **Header restructured**: added a hamburger icon-button (leftmost), the `DomusPRO` wordmark
+    (plain styled text, not the logo image — deliberately, per explicit user direction) truly centered
+    across the *entire* row via `position: absolute` (not just centered between the avatar and button
+    group, which would've been off-center), and moved the avatar+name+role out of the header entirely
+    into their own row just above "Property Summary".
+  - **My Properties cards simplified**: dropped the tenant-count stat and occupancy-percentage ring
+    entirely; now just icon (44×44, down from 64×64), address (`item.line1`), "City · N unit(s)"
+    (singular-aware), and the Active badge — removing the now-dead `propertyOccupancy` helper function
+    in the process (twice — it briefly resurfaced from an uncommitted edit and was removed again).
+  - **New side-drawer navigation** (`src/components/side-menu.tsx`, new file): opens via the header
+    hamburger, added as a *supplement* to the existing bottom tab bar (which is unchanged) rather than
+    a replacement — the tab bar still covers Dashboard/Properties/Tenants/Profile day-to-day, the
+    drawer adds everything else. Built with RN core `Animated` (not Reanimated) sliding a `Modal`
+    panel in from the left. Content: an "Upgrade plan" teaser card (UI-only — no billing/subscription
+    backend exists, flagged explicitly to the user as such), then four grouped sections — **core**
+    (Dashboard/Properties/Archived), **tenant pipeline** (Leads → Applications → Tenants → Leases,
+    tracing an actual lifecycle order), **money & ops** (Payments/Expenses/Maintenance/Reports), and
+    **account** (Invite tenant/Account/Log out). Dashboard, Properties, Tenants, and Account navigate
+    for real; Log out calls the real `signOut()`. Everything else ("Soon" tag) is a `comingSoon()`
+    stub, **including Invite tenant** — deliberately, even though the backend already has a real
+    `POST /api/v1/auth/tenant-invites` endpoint (`AuthController.cs`) for exactly this, because the
+    *mobile* screen/API wiring for it doesn't exist yet; that's flagged as real follow-up work, not
+    forgotten.
+  - **No-scroll requirement**: the user explicitly wanted every drawer item visible without scrolling,
+    on any device size — not just tuned to fit one screenshot. Implemented with every row (and the
+    logo/role-label rows) as `flex: 1` inside a `flex: 1` container, each with a `maxHeight` cap, so
+    rows shrink to guarantee fit on short screens and stop growing (rather than stretching sparse) once
+    capped on tall ones. Also added the full `domuspro-logo.png` image at the drawer's top (distinct
+    from the header's plain-text wordmark, per explicit user direction to use the *full* logo here).
+- **Property Detail screen (`properties/[id]/index.tsx`) restructured**: photo (no more type-badge
+  overlay on it), then a new property-info card matching the dashboard's own card style (address,
+  "City · N units", Active badge) directly below the photo, then the existing Summary 2×2 stat grid
+  **unchanged** (per explicit "keep summary as we have" instruction), then the unit list converted
+  from a horizontal-scrolling row of narrow label-only cards to a **vertical list of full-width cards**
+  showing label + bed/bath count + a colored status pill (reusing the same teal/orange
+  occupied-vs-other convention as before). "+ Add Unit" moved from a dashed-border button to a plain
+  centered text link at the bottom of the list, per explicit request to drop the border.
+- **New Unit Detail screen** (`properties/[id]/units/[unitId].tsx`, new route): reached by tapping any
+  unit card on the property detail screen (previously non-interactive `View`s, now `Pressable`).
+  Surfaces `unitType` and `askingRent` — both captured on the Add Unit form but never displayed
+  anywhere until now — plus status/type badges and a bed/bath/sqft stat row. Header has a pencil
+  "Edit" button and a "Media" section with an add-photo button; both are `comingSoon()` stubs, since
+  neither an edit-unit endpoint nor any unit-photo storage/upload capability exists in the backend —
+  explicitly scoped out as bigger, separate follow-up work rather than half-built here.
+- **Profile screen rebuilt** (`(tabs)/profile.tsx`) to match a second reference image: avatar/name/email
+  header, two grouped white-card lists (Edit profile/Change password/Notifications, then Help and
+  support/App version), and a plain (no colored button) centered "Sign out" row at the bottom. Edit
+  profile/Change password/Notifications/Help and support are all `comingSoon()` stubs — no
+  corresponding screens or backend exist yet.
+- **Real bugs found and fixed during this pass**: a stray `iimport` typo (missing character) in the new
+  unit-detail file; the same file initially created as `[unitid].tsx` (lowercase) instead of
+  `[unitId].tsx` — Expo Router derives the route param name from the exact filename, so this would have
+  bound the param as `unitid` instead of `unitId`, silently breaking navigation; fixed via a two-step
+  rename (macOS's case-insensitive-but-preserving filesystem needs a temp-name hop to actually change
+  case). Also `StyleSheet.absoluteFillObject` doesn't exist in this RN version's types — replaced with
+  explicit `position/top/left/right/bottom`. The `rentDivider` between "Last month"/"This month" had
+  `marginBottom` only (no top margin), reading as visually off-center between the two rows — fixed to
+  `marginVertical`. Header hamburger button and avatar had no `gap`, sitting flush against each other —
+  fixed.
+- **Cross-repo note left, not committed by this session**: added an entry to the sibling
+  `rent-manager-frontend` repo's own `PROGRESS.md` (uncommitted, local-only) pointing at this mobile
+  repo's `colors.ts` values, since the web app's Tailwind theme still hasn't been ported to match the
+  DomusPRO rebrand — see that repo's `PROGRESS.md` if picking this up from the web side.
+- **Next step**: the security gap flagged in the 2026-09-01 entry (manual sign-out doesn't revoke the
+  refresh token server-side or clear the Face ID cache — real risk only on a shared/borrowed device) is
+  still unresolved, deliberately deferred as low-priority until this app has real users. Also still
+  open: wiring a real Invite Tenant flow (backend already supports it), an edit-unit flow, unit-photo
+  upload, and the app-lock redesign discussed at length in the previous session (decoupling Face ID from
+  sign-out entirely) — none of these were touched this session, all remain exactly where the last entry
+  left them.
+
 ## 2026-09-01 — Claude (Mac) shipped refresh-token auth, first real-device run, finished color centralization
 
 - **First-ever real-device run**: `npx expo run:ios --device` onto a physical iPhone (Xcode already had a
