@@ -3,17 +3,16 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useEffect, useRef } from "react";
 import {
-    Alert,
-    Animated,
-    Dimensions,
-    Modal,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
+  Alert,
+  Animated,
+  Dimensions,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 function comingSoon(feature: string) {
   Alert.alert("Coming soon", `${feature} isn't wired up yet.`);
 }
@@ -60,7 +59,7 @@ export function SideMenu({
   role: string;
 }) {
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
-
+  const insets = useSafeAreaInsets();
   useEffect(() => {
     Animated.timing(translateX, {
       toValue: visible ? 0 : -DRAWER_WIDTH,
@@ -73,26 +72,18 @@ export function SideMenu({
     onClose();
     onNavigate(path);
   }
-
-  const coreItems: MenuItem[] = [
+     const workingItems: MenuItem[] = [
     { icon: "view-dashboard-outline", label: "Dashboard", onPress: () => go("/") },
     { icon: "office-building-outline", label: "Properties", onPress: () => go("/properties") },
-    { icon: "archive-outline", label: "Archived", soon: true, onPress: () => comingSoon("Archived") },
-  ];
-  const pipelineItems: MenuItem[] = [
-    { icon: "target-account", label: "Leads", soon: true, onPress: () => comingSoon("Leads") },
-    { icon: "clipboard-text-outline", label: "Applications", soon: true, onPress: () => comingSoon("Applications") },
     { icon: "account-group-outline", label: "Tenants", onPress: () => go("/tenants") },
-    { icon: "file-document-outline", label: "Leases", soon: true, onPress: () => comingSoon("Leases") },
   ];
-  const opsItems: MenuItem[] = [
-    { icon: "credit-card-outline", label: "Payments", soon: true, onPress: () => comingSoon("Payments") },
+  const soonItems: MenuItem[] = [
+    { icon: "clipboard-account-outline", label: "Leads & Applications", soon: true, onPress: () => comingSoon("Leads & Applications") },
+    { icon: "account-hard-hat", label: "Contractors", soon: true, onPress: () => comingSoon("Contractors") },
     { icon: "receipt-text-outline", label: "Expenses", soon: true, onPress: () => comingSoon("Expenses") },
-    { icon: "wrench-outline", label: "Maintenance", soon: true, onPress: () => comingSoon("Maintenance") },
-    { icon: "chart-bar", label: "Reports", soon: true, onPress: () => comingSoon("Reports") },
+    { icon: "email-outline", label: "Contact us", soon: true, onPress: () => comingSoon("Contact us") },
   ];
   const accountItems: MenuItem[] = [
-    { icon: "account-plus-outline", label: "Invite tenant", soon: true, onPress: () => comingSoon("Invite tenant") },
     { icon: "account-circle-outline", label: "Account", onPress: () => go("/profile") },
   ];
 
@@ -102,7 +93,7 @@ export function SideMenu({
       <Animated.View
         style={[styles.panel, { width: DRAWER_WIDTH, transform: [{ translateX }] }]}
       >
-        <SafeAreaView style={styles.panelInner} edges={["top", "bottom"]}>
+                       <View style={[styles.panelInner, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
           <View style={styles.menuList}>
             <View style={styles.logoRow}>
               <Image
@@ -112,28 +103,33 @@ export function SideMenu({
               />
             </View>
 
-            <View style={styles.roleLabelRow}>
-              <Text style={styles.roleLabel}>{role.toUpperCase()}</Text>
-            </View>
-
-            <Pressable style={styles.upgradeCard} onPress={() => comingSoon("Upgrade plan")}>
-              <MaterialCommunityIcons name="crown-outline" size={18} color={Colors.orangeTint} />
-              <Text style={styles.upgradeTitle}>Upgrade plan</Text>
-              <MaterialCommunityIcons name="chevron-right" size={16} color={Colors.tealTint} />
+            <Pressable onPress={() => comingSoon("Upgrade plan")}>
+              {({ pressed }) => (
+                <View style={[styles.upgradeCard, pressed && styles.upgradeCardPressed]}>
+                  <View style={styles.upgradeIconBadge}>
+                    <MaterialCommunityIcons name="crown" size={16} color={Colors.accentOrange} />
+                  </View>
+                  <View style={styles.upgradeTextGroup}>
+                    <Text style={styles.upgradeTitle}>Upgrade to Pro</Text>
+                    <Text style={styles.upgradeSubtitle}>More properties, more tools</Text>
+                  </View>
+                  <View style={styles.upgradeArrowBadge}>
+                    <MaterialCommunityIcons name="arrow-right" size={16} color={Colors.white} />
+                  </View>
+                </View>
+              )}
             </Pressable>
 
-            {coreItems.map((item) => (
+            {workingItems.map((item) => (
               <MenuRow key={item.label} item={item} active={item.label === "Dashboard"} />
             ))}
             <View style={styles.divider} />
-            {pipelineItems.map((item) => (
+
+            {soonItems.map((item) => (
               <MenuRow key={item.label} item={item} />
             ))}
             <View style={styles.divider} />
-            {opsItems.map((item) => (
-              <MenuRow key={item.label} item={item} />
-            ))}
-            <View style={styles.divider} />
+
             {accountItems.map((item) => (
               <MenuRow key={item.label} item={item} />
             ))}
@@ -144,7 +140,7 @@ export function SideMenu({
               <Text style={styles.signOutLabel}>Log out</Text>
             </Pressable>
           </View>
-        </SafeAreaView>
+        </View>
       </Animated.View>
     </Modal>
   );
@@ -169,30 +165,59 @@ const styles = StyleSheet.create({
   panelInner: { flex: 1 },
   menuList: { flex: 1, padding: 14 },
   logoRow: {
-    flex: 1.4,
-    maxHeight: 52,
+    height: 52,
+    marginTop: 12,
+    marginBottom: 12,
     justifyContent: "center",
     alignItems: "flex-start",
     paddingHorizontal: 8,
   },
   logoImage: { width: 150, height: 50 },
-  roleLabelRow: { flex: 0.6, justifyContent: "center", paddingHorizontal: 8 },
-  roleLabel: { fontSize: 10, fontWeight: "600", color: Colors.textMuted, letterSpacing: 0.5 },
   upgradeCard: {
-    flex: 1.6,
-    maxHeight: 66,
+    height: 60,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    backgroundColor: Colors.primaryDark,
-    borderRadius: 12,
+    gap: 10,
+    backgroundColor: "#000000",
+    borderRadius: 14,
     paddingHorizontal: 12,
-    marginBottom: 6,
+    marginBottom: 10,
+    shadowColor: Colors.accentOrange,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  upgradeTitle: { flex: 1, fontSize: 13, fontWeight: "700", color: Colors.white },
+  upgradeCardPressed: {
+    opacity: 0.88,
+    transform: [{ scale: 0.98 }],
+  },
+  upgradeIconBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  upgradeTextGroup: { flex: 1 },
+  upgradeTitle: { fontSize: 14, fontWeight: "700", color: Colors.white },
+  upgradeSubtitle: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: "rgba(255,255,255,0.75)",
+    marginTop: 1,
+  },
+  upgradeArrowBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   row: {
-    flex: 1,
-    maxHeight: 46,
+    height: 44,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
@@ -204,11 +229,9 @@ const styles = StyleSheet.create({
   rowLabelActive: { color: Colors.accentOrange, fontWeight: "600" },
   soonLabel: { fontSize: 10, color: Colors.borderLighter },
   divider: {
-    flex: 0.3,
-    maxHeight: 14,
-    justifyContent: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    height: 1,
+    marginVertical: 8,
+    backgroundColor: Colors.divider,
   },
   signOutLabel: { fontSize: 13, fontWeight: "600", color: Colors.errorText },
 });
