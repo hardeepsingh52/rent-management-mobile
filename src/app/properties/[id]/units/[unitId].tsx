@@ -1,20 +1,26 @@
+import { PhotoStrip } from "@/components/photo-strip";
+import { PhotoViewerModal } from "@/components/photo-viewer-modal";
 import { Colors } from "@/constants/colors";
+import { getUnitMedia, uploadUnitPhotos } from "@/lib/media-api";
 import { getProperty } from "@/lib/properties-api";
 import { useSession } from "@/lib/session-context";
-import type { Unit } from "@/lib/types";
+import type { MediaItem, Unit } from "@/lib/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+const MAX_UNIT_PHOTOS = 10; // mirrors AddUnitMediaCommandHandler's MaxPhotosPerUnit
 
 function comingSoon(feature: string) {
   Alert.alert("Coming soon", `${feature} isn't wired up yet.`);
@@ -36,23 +42,65 @@ export default function UnitDetailScreen() {
   const { id, unitId } = useLocalSearchParams<{ id: string; unitId: string }>();
   const user = useSession();
   const router = useRouter();
-  const [unit, setUnit] = useState<Unit | null>(null);
+   const [unit, setUnit] = useState<Unit | null>(null);
+  const [photos, setPhotos] = useState<MediaItem[]>([]);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     try {
       setError(null);
-      const property = await getProperty(id, user.token);
+      const [property, media] = await Promise.all([
+        getProperty(id, user.token),
+        getUnitMedia(unitId, user.token),
+      ]);
       const match = property.units.find((u) => String(u.id) === unitId);
       if (!match) {
         setError("Unit not found.");
         return;
       }
       setUnit(match);
+      setPhotos(media);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load unit.");
     }
   }, [id, unitId, user.token]);
+
+  async function handleAddPhoto() {
+    if (photos.length >= MAX_UNIT_PHOTOS) {
+      Alert.alert(
+        "Limit reached",
+        `A unit can have at most ${MAX_UNIT_PHOTOS} photos. Remove one to add another.`,
+      );
+      return;
+    }
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission needed", "Allow photo library access to add unit photos.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: true,
+      selectionLimit: MAX_UNIT_PHOTOS - photos.length,
+    });
+    if (result.canceled || result.assets.length === 0) {
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      await uploadUnitPhotos(unitId, result.assets, photos.length, user.token);
+      setPhotos(await getUnitMedia(unitId, user.token));
+    } catch (err) {
+      Alert.alert("Upload failed", err instanceof Error ? err.message : "Please try again.");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -117,16 +165,16 @@ export default function UnitDetailScreen() {
           </View>
         </View>
 
-        <View style={styles.mediaHeaderRow}>
+                      <View style={styles.mediaSection}>
           <Text style={styles.sectionTitle}>Media</Text>
-          <Pressable
-            style={styles.mediaAddButton}
-            onPress={() => comingSoon("Unit photos")}
-          >
-            <MaterialCommunityIcons name="plus" size={13} color={Colors.accentOrange} />
-          </Pressable>
+          <PhotoStrip
+            photos={photos}
+            onAddPhoto={handleAddPhoto}
+            onPhotoPress={setViewerIndex}
+            uploading={uploadingPhoto}
+            maxPhotos={MAX_UNIT_PHOTOS}
+          />
         </View>
-        <Text style={styles.mediaEmpty}>No photos yet.</Text>
 
         <View style={styles.rentCard}>
           <Text style={styles.rentLabel}>ASKING RENT</Text>
@@ -157,7 +205,13 @@ export default function UnitDetailScreen() {
             <Text style={styles.statLabel}>Sq ft</Text>
           </View>
         </View>
-      </ScrollView>
+           </ScrollView>
+      <PhotoViewerModal
+        photos={photos}
+        visible={viewerIndex !== null}
+        initialIndex={viewerIndex ?? 0}
+        onClose={() => setViewerIndex(null)}
+      />
     </SafeAreaView>
   );
 }
@@ -201,22 +255,13 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   badgeText: { fontSize: 10, fontWeight: "600", color: Colors.textMutedDark },
-  mediaHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  mediaSection: { marginBottom: 16 },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: Colors.primaryDark,
     marginBottom: 8,
   },
-  sectionTitle: { fontSize: 12, fontWeight: "600", color: Colors.primaryDark },
-  mediaAddButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: Colors.orangeTint,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  mediaEmpty: { fontSize: 12, color: Colors.textMuted, marginBottom: 16 },
   rentCard: {
     backgroundColor: Colors.white,
     borderRadius: 16,

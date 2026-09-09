@@ -1,13 +1,16 @@
+import { PhotoCarousel } from "@/components/photo-carousel";
 import { Colors } from "@/constants/colors";
+import { getPropertyMedia, uploadPropertyPhotos } from "@/lib/media-api";
 import { getProperty } from "@/lib/properties-api";
 import { useSession } from "@/lib/session-context";
-import type { Property, Unit } from "@/lib/types";
+import type { MediaItem, Property, Unit } from "@/lib/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,9 +19,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// No vacancy status is tracked per property yet, so occupancy is a placeholder:
-// any property with units counts as fully occupied. Same logic as the dashboard.
-function propertyOccupancy(property: Property): number {
+const MAX_PROPERTY_PHOTOS = 5; // mirrors AddPropertyMediaCommandHandler's MaxPhotosPerProperty
+ // No vacancy status is tracked per property yet, so occupancy is a placeholder:
+ // any property with units counts as fully occupied. Same logic as the dashboard.
+ function propertyOccupancy(property: Property): number {
   return property.units.length > 0 ? 100 : 0;
 }
 
@@ -39,18 +43,58 @@ export default function PropertyDetailScreen() {
   const user = useSession();
   const router = useRouter();
   const [property, setProperty] = useState<Property | null>(null);
+  const [photos, setPhotos] = useState<MediaItem[]>([]);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+    const load = useCallback(async () => {
     try {
       setError(null);
-      const data = await getProperty(id, user.token);
+      const [data, media] = await Promise.all([
+        getProperty(id, user.token),
+        getPropertyMedia(id, user.token),
+      ]);
       setProperty(data);
+      setPhotos(media);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load property.");
     }
   }, [id, user.token]);
 
+  async function handleAddPhoto() {
+    if (photos.length >= MAX_PROPERTY_PHOTOS) {
+      Alert.alert(
+        "Limit reached",
+        `A property can have at most ${MAX_PROPERTY_PHOTOS} photos. Remove one to add another.`,
+      );
+      return;
+    }
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission needed", "Allow photo library access to add property photos.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: true,
+      selectionLimit: MAX_PROPERTY_PHOTOS - photos.length,
+    });
+    if (result.canceled || result.assets.length === 0) {
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      await uploadPropertyPhotos(id, result.assets, photos.length, user.token);
+      setPhotos(await getPropertyMedia(id, user.token));
+    } catch (err) {
+      Alert.alert("Upload failed", err instanceof Error ? err.message : "Please try again.");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
   useFocusEffect(
     useCallback(() => {
       load();
@@ -101,16 +145,8 @@ export default function PropertyDetailScreen() {
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-                <View style={styles.photoWrap}>
-          {/* No property-photo feature exists in the backend yet, so every
-              property uses the same placeholder image. */}
-          <Image
-            source={require("@/assets/images/property-placeholder.jpg")}
-            style={styles.photo}
-            contentFit="cover"
-          />
-        </View>
+         <ScrollView contentContainerStyle={styles.content}>
+        <PhotoCarousel photos={photos} onAddPhoto={handleAddPhoto} uploading={uploadingPhoto} />
 
         <View style={styles.propertyInfoCard}>
           <View style={styles.propertyInfoText}>
@@ -238,8 +274,6 @@ const styles = StyleSheet.create({
     textAlign: "left",
     marginHorizontal: 10,
   },
-  photoWrap: { position: "relative" },
-  photo: { width: "100%", height: 190, borderRadius: 18 },
   sectionTitle: {
     fontSize: 15,
     fontWeight: "700",

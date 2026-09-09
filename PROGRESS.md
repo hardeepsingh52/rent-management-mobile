@@ -26,6 +26,83 @@ lives there rather than being duplicated here.
 - **Canadian & Provincial Tenancy Law Compliance (Federal, Ontario, Manitoba)**: same standing
   requirement as the web repo — see this project's `AGENTS.md` for the full text.
 
+## 2026-09-08 — Claude (Mac) shipped property/unit photo upload, closing one of the two open items from 2026-09-02
+
+- **Property detail gets a photo carousel, unit detail gets a photo strip — both wired to the backend's
+  already-existing media API** (`GetPropertyMediaUploadUrlCommand`/`AddPropertyMediaCommand`/
+  `GetPropertyMediaQuery` and their unit equivalents, in the sibling `PropertyManagementRepo` — no backend
+  feature work needed, just discovery: read the contract straight from that repo's controller/command
+  source rather than guessing). Flow is direct-to-blob: `POST .../media/upload-url` returns a 15-min
+  write-only Azure Blob SAS URL, the client PUTs bytes straight to Azure (API never touches file bytes),
+  then `POST .../media` registers the blob path. `GET .../media` returns fresh 10-min read SAS URLs each
+  call — nothing is ever stored as a permanently-usable link.
+- **New files**: `src/lib/media-api.ts` (one shared implementation parametrized by base path, exposed as
+  `get/uploadPropertyPhotos` and `get/uploadUnitPhotos`), `src/components/photo-carousel.tsx` (full-bleed
+  swipeable carousel with dot indicators + camera-plus overlay button, property detail), and
+  `src/components/photo-strip.tsx` (horizontal thumbnail row ending in a dashed add-tile, unit detail).
+  Mocked with the `visualize` tool first, same workflow as every prior design pass. Added
+  `MediaItem` to `types.ts`. Installed `expo-image-picker` + `expo-file-system` (neither existed before),
+  added the `expo-image-picker` config plugin to `app.json`.
+- **Real bug — `expo-file-system`'s `File.upload()` is native-only, not web.** Its own docs list
+  Android/iOS/tvOS, no web. On web, `expo-image-picker`'s picked asset instead carries a plain browser
+  `file` (File/Blob) meant for `fetch`. `media-api.ts`'s upload step now branches on `Platform.OS`: web
+  does a plain `fetch(uploadUrl, { method: "PUT", body: photo.file })`, native uses `expo-file-system`'s
+  `File.upload()` — both send `x-ms-blob-type: BlockBlob` (required by Azure's direct SAS "Put Blob").
+  Confirmed working on **both** platforms this session: web (verified via a JS-injected synthetic file
+  selection, since real OS file-picker dialogs aren't scriptable from browser automation) and natively on
+  a physical iPhone 13 (real photo, real pick, real upload, shows up in the carousel).
+- **Five real infrastructure bugs found and fixed, all in the sibling `PropertyManagementRepo` /Azure
+  config — none were mobile-app bugs, but all blocked this feature from working against Azure prod**:
+  1. **Azure App Service rejects app-setting names containing "Connection" or starting with "Azure" at
+     all** (`ExtendedCode 04072`, confirmed directly against the ARM API, not just a Portal UI quirk) —
+     `AzureBlobStorage__ConnectionString`, `AzureBlobStorage__Connection`, and even
+     `AzureBlobStorage__Secret` were all rejected; only dropping the `Azure` prefix entirely
+     (`BlobStorage__Secret`) worked. Renamed `AzureBlobStorageService.cs`'s config keys from
+     `AzureBlobStorage:ConnectionString`/`ContainerName` to `BlobStorage:Secret`/`ContainerName` to match
+     (backend commit `38b9a96`).
+  2. **Azure production DB was missing the `RenameMediaUrlToBlobPath` migration** — this backend has no
+     auto-migrate-on-startup, so a same-day backend commit's schema change never reached the Azure
+     Postgres (Neon) database until `dotnet ef database update` was run manually against it.
+  3. **Azure Blob Storage was configured nowhere at all** — not on Azure, not even in local dev
+     user-secrets — despite the backend's own `PROGRESS.md` describing it as built and tested. Needed
+     `BlobStorage__Secret` (the Storage Account's connection string, not just its key) and
+     `BlobStorage__ContainerName=property-media` set both as an Azure app setting and a local user-secret.
+  4. **Azure Portal dropped a setting silently** — editing `BlobStorage__Secret`'s value through a Portal
+     tab that had been loaded before `BlobStorage__ContainerName` was added (via CLI) saved the whole
+     settings collection as the stale page knew it, deleting `ContainerName` in the process. Re-added
+     directly via CLI once diagnosed from the real backend exception (`ArgumentNullException:
+     blobContainerName`, pulled from Azure's `az webapp log download` + `DetailedErrors` folder, not
+     guessed).
+  5. **`NSPhotoLibraryUsageDescription` was never generated into `ios/Info.plist`** — the
+     `expo-image-picker` config plugin only applies during `expo prebuild`, and this project's `ios/`
+     folder (gitignored, predates the plugin being added) never got regenerated. Crashed the real device
+     with "attempted to access privacy-sensitive data without a usage description." Patched
+     `ios/DomusPRO/Info.plist` directly — local-only fix (matches `app.json`'s plugin config, so any
+     future clean `ios/` regeneration picks it up automatically without needing this patch again).
+- **Also hit, unrelated to the feature itself**: a free Apple ID provisioning profile expiring (~7 days)
+  required re-enabling "Automatically manage signing" in Xcode's Signing & Capabilities tab before
+  `npx expo run:ios --device` would install again.
+- **Security note, not yet confirmed resolved**: while diagnosing the Azure DB migration gap, an overly
+  broad `az webapp config connection-string list` query printed the live production Postgres connection
+  string — including its plaintext password — into this chat session. Flagged to the user immediately
+  with instructions to rotate the Neon `neondb_owner` password; **not confirmed done as of this entry**.
+  Whoever picks this up next should verify the password was actually rotated.
+- **Full-screen swipeable photo viewer added to unit detail**: tapping any thumbnail in `PhotoStrip` now
+  opens `src/components/photo-viewer-modal.tsx` (new file) — a full-screen `Modal` with a paging
+  `ScrollView` starting at the tapped photo, a close button, and a "N / total" counter. `PhotoStrip`
+  gained a required `onPhotoPress(index)` prop to wire this up. Not added to the property detail carousel
+  (`PhotoCarousel`) — only asked for on the unit screen this session, though the modal is reusable there
+  later if wanted.
+- **Scope deliberately left out this session**: delete-media UI (backend `POST .../media/delete` exists
+  for both property and unit, not wired into `media-api.ts` or either screen — no delete affordance was
+  asked for, this was an upload-first pass). A cover-image-selection feature (letting a landlord mark one
+  uploaded photo as primary) was discussed and drafted as a task description for the user's own project
+  tracker, but not built — no `IsCover` concept exists on `PropertyMedia`/`UnitMedia` yet.
+- **Next step**: build delete-media UI (long-press or an edit-mode "x" on `PhotoCarousel`/`PhotoStrip`
+  thumbnails, calling the already-existing but unused delete endpoints) if wanted; otherwise the two
+  items still open from the 2026-09-02 entry (sign-out revocation gap, app-lock redesign) are the oldest
+  remaining backlog. Invite Tenant flow and edit-unit flow (both flagged 2026-09-02) are also still open.
+
 ## 2026-09-02 — Claude (Mac) redesigned dashboard/property/unit screens against a reference layout, added drawer navigation
 
 - **Design process**: worked from a reference mockup image (external design tool screenshots) the user

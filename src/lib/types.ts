@@ -62,3 +62,9 @@ export interface CreateUnitInput {
   squareFeet: number;
   askingRent: number;
 }
+
+export interface MediaItem {
+  id: number;
+  url: string;
+  sortOrder: number;
+}
