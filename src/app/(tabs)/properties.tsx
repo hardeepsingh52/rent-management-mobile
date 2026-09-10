@@ -269,12 +269,12 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   statValue: {
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: "700",
     color: Colors.primaryDark,
     marginTop: 8,
   },
-  statLabel: { fontSize: 10, color: Colors.textMuted, marginTop: 1 },
+  statLabel: { fontSize: 11, color: Colors.textMuted, marginTop: 1 },
   searchRow: { flexDirection: "row", gap: 8, marginTop: 16 },
   search: {
     flex: 1,
