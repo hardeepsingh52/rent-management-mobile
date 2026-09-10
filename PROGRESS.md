@@ -26,6 +26,54 @@ lives there rather than being duplicated here.
 - **Canadian & Provincial Tenancy Law Compliance (Federal, Ontario, Manitoba)**: same standing
   requirement as the web repo — see this project's `AGENTS.md` for the full text.
 
+## 2026-09-10 — Claude (Windows) added property cover-photo selection, on top of the backend's already-merged `IsCover` support
+
+- **Property photo carousel gets a cover-photo picker**: a labeled pill button (star icon + "Set cover" / "Cover" text —
+  made explicitly self-labeling after early feedback that a bare star icon didn't explain itself) lets a landlord mark
+  whichever photo is currently swiped into view as the property's cover. Backend support (`IsCover` on `PropertyMedia`,
+  `SetPropertyMediaCoverCommand`, `POST /properties/{id}/media/{mediaId}/cover`) already existed on `origin/master` in
+  the backend repo (commit `a20c705`, done on a different machine/session) but hadn't been pulled locally — no backend
+  work was needed this session, just `git pull` there and build the mobile UI against it. Scoped to properties only;
+  units were explicitly left out this round (backend has the equivalent `SetUnitMediaCoverCommand` ready whenever
+  that's wanted).
+- **Cover photo now always renders first** in the carousel (reordered client-side, not by backend `SortOrder`), and the
+  carousel auto-resets to position 0 whenever the cover changes.
+- **Real bug found and fixed — swipe position tracking was silently wrong on web**: `PhotoCarousel` originally tracked
+  the visible photo via `onMomentumScrollEnd`/`onScrollEndDrag`. Traced into `react-native-web`'s `ScrollView` source:
+  those two events are wired through its touch-responder system and **never fire for mouse-wheel or trackpad
+  scrolling** — only real touch gestures. On desktop web this meant `activeIndex` stayed stuck at 0 forever, so the
+  cover star appeared to show "orange for every photo" (it was really just always reading photo 0, which happened to
+  be the cover). Fixed by switching to a debounced `onScroll` (`scrollEventThrottle={16}`, index committed 100ms after
+  the last scroll event) — `onScroll` maps directly to the DOM `scroll` event and fires for every input method.
+  Verified end-to-end against the live backend: swiped to a non-cover photo, tapped its star, confirmed via direct API
+  call that the backend's `isCover` flag actually moved to the new photo.
+- **Also added**: an `X/max` photo-count badge and a dimmed/disabled add-photo button once a property hits its 5-photo
+  cap (`MAX_PROPERTY_PHOTOS`) — needed because of the next bullet.
+- **Known bug found, not fixed — `Alert.alert()` is a complete no-op on the web build**:
+  `node_modules/react-native-web/dist/exports/Alert/index.js` is a literal `static alert() {}`. Every existing
+  `Alert.alert` call in this app (upload failures, permission prompts, the photo-limit message, etc.) has always
+  silently done nothing on web — it just happened to surface now because hitting the 5-photo cap has no other visible
+  side effect. Native is unaffected (real dialogs there). Whoever picks this up next should swap web's Alert usage for
+  something that actually renders (e.g. `window.confirm`/a custom modal) — it's app-wide, not specific to this feature.
+- **ESLint set up for the first time** — this repo had no ESLint config; running `npm run lint` auto-installed
+  `eslint` + `eslint-config-expo` and generated `eslint.config.js`. It surfaced 9 pre-existing errors, all in files
+  this session never touched: `photo-viewer-modal.tsx` and `use-color-scheme.web.ts` (`react-hooks/set-state-in-effect`),
+  `side-menu.tsx` (`react-hooks/refs`, ×6, accessing a ref during render), and one `exhaustive-deps` warning in
+  `session-context.tsx`. Not fixed this session — flagged for whoever owns those files.
+- **Added `.claude/skills/run-rent-management-mobile/`**: documents driving this Expo web app through the Claude Code
+  Desktop Browser pane (`preview_start` with the `expo-web` launch.json config, then `find`/`computer`/`read_page`) —
+  no custom driver script needed, but notes real gotchas hit this session (cold-vs-warm Metro bundle timing,
+  `computer`'s coordinate-click needing a prior screenshot, don't submit the login form with real credentials since
+  `.env.local` points at the live backend).
+- **Also noticed, not investigated**: a `405 Method Not Allowed` console error on every page load of the web build,
+  reproducible with zero user interaction. Unrelated to this feature (happens on unmodified pages too) and its source
+  wasn't identified — worth a look separately.
+- **Next step**: fix the web `Alert.alert` no-op (affects every Alert call app-wide, most visibly the photo-limit
+  message) and the 9 pre-existing lint errors above. If unit cover-photo selection is wanted, the backend command
+  already exists (`SetUnitMediaCoverCommand`) — same pattern as this session's property work. The two items open since
+  2026-09-02 (sign-out revocation gap, app-lock redesign) and Invite Tenant / edit-unit flows are still the oldest
+  open backlog.
+
 ## 2026-09-08 — Claude (Mac) shipped property/unit photo upload, closing one of the two open items from 2026-09-02
 
 - **Property detail gets a photo carousel, unit detail gets a photo strip — both wired to the backend's
