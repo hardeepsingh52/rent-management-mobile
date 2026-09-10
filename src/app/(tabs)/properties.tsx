@@ -185,15 +185,13 @@ export default function PropertiesScreen() {
                   style={styles.photo}
                   contentFit="cover"
                 />
-                <View style={styles.typeBadge}>
-                  <Text style={styles.typeBadgeText} numberOfLines={1}>
-                    {formatPropertyType(item.propertyType)}
-                  </Text>
-                </View>
               </View>
               <View style={styles.cardInfo}>
                 <Text style={styles.cardName} numberOfLines={1}>
                   {item.name}
+                </Text>
+                <Text style={styles.cardType} numberOfLines={1}>
+                  {formatPropertyType(item.propertyType)}
                 </Text>
                 <View style={styles.cardCityRow}>
                   <MaterialCommunityIcons
@@ -309,19 +307,9 @@ const styles = StyleSheet.create({
   cardTop: { flexDirection: "row", gap: 12, alignItems: "center" },
   photoWrap: { position: "relative" },
   photo: { width: 72, height: 72, borderRadius: 12 },
-  typeBadge: {
-    position: "absolute",
-    left: 5,
-    bottom: 5,
-    right: 5,
-    backgroundColor: "rgba(22, 48, 43, 0.85)",
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  typeBadgeText: { fontSize: 8, fontWeight: "600", color: Colors.white },
   cardInfo: { flex: 1, minWidth: 0 },
   cardName: { fontSize: 14, fontWeight: "700", color: Colors.primaryDark },
+  cardType: { fontSize: 11, fontWeight: "600", color: Colors.accentOrange, marginTop: 2 },
   cardCityRow: {
     flexDirection: "row",
     alignItems: "center",

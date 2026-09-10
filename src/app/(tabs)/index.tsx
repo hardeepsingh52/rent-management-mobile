@@ -34,6 +34,10 @@ function comingSoon(feature: string) {
   Alert.alert("Coming soon", `${feature} isn't wired up yet.`);
 }
 
+function formatPropertyType(type: string): string {
+  return type.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+}
+
 function RentPeriodRow({
   title,
   percentLabel,
@@ -313,6 +317,9 @@ export default function DashboardScreen() {
               <Text style={styles.propertyName} numberOfLines={1}>
                 {item.line1}
               </Text>
+              <Text style={styles.propertyType} numberOfLines={1}>
+                {formatPropertyType(item.propertyType)}
+              </Text>
               <Text style={styles.propertyCity}>
                 {item.city} · {item.units.length} unit
                 {item.units.length === 1 ? "" : "s"}
@@ -566,6 +573,7 @@ const styles = StyleSheet.create({
   },
   propertyInfo: { flex: 1, minWidth: 0 },
   propertyName: { fontSize: 14, fontWeight: "700", color: Colors.primaryDark },
+  propertyType: { fontSize: 11, fontWeight: "600", color: Colors.accentOrange, marginTop: 2 },
   propertyCity: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
   badge: {
     backgroundColor: Colors.tealTint,
