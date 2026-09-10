@@ -94,11 +94,12 @@ lives there rather than being duplicated here.
   > visible there until that's fixed separately.
   >
   > Out of scope for v1: multi-select bulk delete, photo reordering.
+- **Unit-level cover-photo selection: explicitly deprioritized by the user** ("not important") — don't propose or build
+  this unless asked again. Backend support (`SetUnitMediaCoverCommand`) still exists if it's ever wanted later.
 - **Next step**: fix the web `Alert.alert` no-op (affects every Alert call app-wide, most visibly the photo-limit
-  message) and the 9 pre-existing lint errors above. If unit cover-photo selection is wanted, the backend command
-  already exists (`SetUnitMediaCoverCommand`) — same pattern as this session's property work. Delete-media UI
-  (drafted above) is next in line after that. The two items open since 2026-09-02 (sign-out revocation gap, app-lock
-  redesign) and Invite Tenant / edit-unit flows are still the oldest open backlog.
+  message) and the 9 pre-existing lint errors above. Delete-media UI (drafted above) is next in line after that. The
+  two items open since 2026-09-02 (sign-out revocation gap, app-lock redesign) and Invite Tenant / edit-unit flows are
+  still the oldest open backlog.
 
 ## 2026-09-08 — Claude (Mac) shipped property/unit photo upload, closing one of the two open items from 2026-09-02
 
