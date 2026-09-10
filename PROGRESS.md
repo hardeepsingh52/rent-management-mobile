@@ -68,11 +68,37 @@ lives there rather than being duplicated here.
 - **Also noticed, not investigated**: a `405 Method Not Allowed` console error on every page load of the web build,
   reproducible with zero user interaction. Unrelated to this feature (happens on unmodified pages too) and its source
   wasn't identified — worth a look separately.
+- **Drafted, not built — delete support for property/unit photos**. Backend already has bulk-delete endpoints from the
+  same session that added upload (`POST /properties/{propertyId}/media/delete` and
+  `POST /properties/units/{unitId}/media/delete`, both `{ mediaIds: number[] } → { deletedCount: number }`, Landlord
+  role required). Confirmed by reading `DeletePropertyMediaCommandHandler`: deleting the current cover photo
+  automatically promotes the next one (by `sortOrder`) to cover server-side — no special client logic needed for that
+  case. Full task text handed to the user for their tracker:
+
+  > **Add delete support for property (and unit) photos**
+  >
+  > Photo upload (property carousel, unit strip) shipped without any way to remove a photo short of deleting the
+  > whole property/unit. Scope: property photo carousel (`src/components/photo-carousel.tsx`) is the primary target;
+  > unit photo strip (`src/components/photo-strip.tsx`) uses the same backend shape and can ship in the same pass or
+  > be split off.
+  >
+  > Suggested UX for v1: an edit-mode toggle (pencil icon) overlays a small "×" on each photo thumbnail; tapping one
+  > confirms, then deletes and refetches — same request → refetch → error-alert pattern already used for upload and
+  > set-cover. One photo at a time is fine for v1; multi-select can come later.
+  >
+  > Acceptance criteria: deleting a photo removes it and the list reflects the change immediately; deleting the
+  > current cover photo leaves a *different* photo correctly marked as cover afterward (verify against the real API
+  > response); deleting the last photo returns the carousel to its placeholder-image empty state; some confirmation
+  > step before an irreversible delete. **Test on native/device, not just web** — `Alert.alert()` is a confirmed
+  > no-op on the web build (see this entry's Alert bullet above), so a confirmation dialog built on it won't be
+  > visible there until that's fixed separately.
+  >
+  > Out of scope for v1: multi-select bulk delete, photo reordering.
 - **Next step**: fix the web `Alert.alert` no-op (affects every Alert call app-wide, most visibly the photo-limit
   message) and the 9 pre-existing lint errors above. If unit cover-photo selection is wanted, the backend command
-  already exists (`SetUnitMediaCoverCommand`) — same pattern as this session's property work. The two items open since
-  2026-09-02 (sign-out revocation gap, app-lock redesign) and Invite Tenant / edit-unit flows are still the oldest
-  open backlog.
+  already exists (`SetUnitMediaCoverCommand`) — same pattern as this session's property work. Delete-media UI
+  (drafted above) is next in line after that. The two items open since 2026-09-02 (sign-out revocation gap, app-lock
+  redesign) and Invite Tenant / edit-unit flows are still the oldest open backlog.
 
 ## 2026-09-08 — Claude (Mac) shipped property/unit photo upload, closing one of the two open items from 2026-09-02
 
