@@ -181,7 +181,7 @@ export default function PropertiesScreen() {
                 {/* No property-photo feature exists in the backend yet, so
                     every property uses the same placeholder image. */}
                 <Image
-                  source={require("@/assets/images/property-placeholder.jpg")}
+                  source={require("@/assets/images/property-placeholder.png")}
                   style={styles.photo}
                   contentFit="cover"
                 />

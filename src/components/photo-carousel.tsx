@@ -75,7 +75,7 @@ export function PhotoCarousel({
     <View style={styles.wrap} onLayout={handleLayout}>
       {photos.length === 0 ? (
         <Image
-          source={require("@/assets/images/property-placeholder.jpg")}
+          source={require("@/assets/images/property-placeholder.png")}
           style={styles.photo}
           contentFit="cover"
         />
