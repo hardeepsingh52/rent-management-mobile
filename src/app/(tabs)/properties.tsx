@@ -92,10 +92,10 @@ export default function PropertiesScreen() {
             {properties !== null && properties.length > 0 && (
               <View style={styles.statsRow}>
                 <View style={styles.statTile}>
-                  <MaterialCommunityIcons
-                    name="home-outline"
-                    size={18}
-                    color={Colors.accentOrange}
+                  <Image
+                    source={require("@/assets/images/property-icon.jpg")}
+                    style={styles.statIcon}
+                    contentFit="contain"
                   />
                   <Text style={styles.statValue}>{properties.length}</Text>
                   <Text style={styles.statLabel}>Properties</Text>
@@ -277,6 +277,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   statLabel: { fontSize: 10, color: Colors.textMuted, marginTop: 1 },
+  statIcon: { width: 22, height: 22 },
   searchRow: { flexDirection: "row", gap: 8, marginTop: 16 },
   search: {
     flex: 1,
