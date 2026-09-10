@@ -174,6 +174,9 @@ export default function UnitDetailScreen() {
             uploading={uploadingPhoto}
             maxPhotos={MAX_UNIT_PHOTOS}
           />
+          <Text style={styles.mediaNote}>
+            Photos can&apos;t be removed without admin help.
+          </Text>
         </View>
 
         <View style={styles.rentCard}>
@@ -262,6 +265,7 @@ const styles = StyleSheet.create({
     color: Colors.primaryDark,
     marginBottom: 8,
   },
+  mediaNote: { fontSize: 11, color: Colors.textMuted, marginTop: 8 },
   rentCard: {
     backgroundColor: Colors.white,
     borderRadius: 16,

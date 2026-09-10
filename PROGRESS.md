@@ -96,10 +96,19 @@ lives there rather than being duplicated here.
   > Out of scope for v1: multi-select bulk delete, photo reordering.
 - **Unit-level cover-photo selection: explicitly deprioritized by the user** ("not important") — don't propose or build
   this unless asked again. Backend support (`SetUnitMediaCoverCommand`) still exists if it's ever wanted later.
+- **Decision reversal — no delete for unit photos, ever (by user request)**: the delete-media task drafted just above
+  covered both property and unit photos; the user has since said unit photos specifically should **never** be
+  deletable by a landlord — only an admin (i.e. not through this app's UI at all). The delete-media task should be
+  scoped to **property photos only** going forward. Also added a static notice —
+  "Photos can't be removed without admin help." — right under the `PhotoStrip` on the unit detail screen
+  (`src/app/properties/[id]/units/[unitId].tsx`, new `mediaNote` style/text) so landlords know this before they
+  upload, rather than discovering it later. Typechecked clean; **not visually verified this round** — the Browser
+  pane's session had logged out (fresh profile after a restart) and no login was performed to avoid entering
+  credentials. Whoever verifies next: log in, open any unit detail screen, confirm the note renders under the strip.
 - **Next step**: fix the web `Alert.alert` no-op (affects every Alert call app-wide, most visibly the photo-limit
-  message) and the 9 pre-existing lint errors above. Delete-media UI (drafted above) is next in line after that. The
-  two items open since 2026-09-02 (sign-out revocation gap, app-lock redesign) and Invite Tenant / edit-unit flows are
-  still the oldest open backlog.
+  message) and the 9 pre-existing lint errors above. Delete-media UI (drafted above, property-only now — see the
+  reversal note) is next in line after that. The two items open since 2026-09-02 (sign-out revocation gap, app-lock
+  redesign) and Invite Tenant / edit-unit flows are still the oldest open backlog.
 
 ## 2026-09-08 — Claude (Mac) shipped property/unit photo upload, closing one of the two open items from 2026-09-02
 
