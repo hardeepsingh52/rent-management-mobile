@@ -179,9 +179,9 @@ export default function PropertiesScreen() {
             <View style={styles.cardTop}>
               <View style={styles.photoWrap}>
                 {/* No property-photo feature exists in the backend yet, so
-                    every property uses the same placeholder image. */}
+                    every property uses the same icon image. */}
                 <Image
-                  source={require("@/assets/images/property-placeholder.jpg")}
+                  source={require("@/assets/images/property-icon.jpg")}
                   style={styles.photo}
                   contentFit="cover"
                 />

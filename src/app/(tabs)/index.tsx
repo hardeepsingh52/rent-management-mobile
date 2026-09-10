@@ -4,6 +4,7 @@ import { getMyProperties } from "@/lib/properties-api";
 import { useSession, useSessionContext } from "@/lib/session-context";
 import type { Property } from "@/lib/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
@@ -303,13 +304,11 @@ export default function DashboardScreen() {
               })
             }
           >
-            <View style={styles.propertyPhoto}>
-              <MaterialCommunityIcons
-                name="home-city-outline"
-                size={20}
-                color={Colors.accentOrange}
-              />
-            </View>
+            <Image
+              source={require("@/assets/images/property-icon.jpg")}
+              style={styles.propertyPhoto}
+              contentFit="cover"
+            />
             <View style={styles.propertyInfo}>
               <Text style={styles.propertyName} numberOfLines={1}>
                 {item.line1}
@@ -563,9 +562,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: Colors.orangeTint,
-    alignItems: "center",
-    justifyContent: "center",
+    overflow: "hidden",
   },
   propertyInfo: { flex: 1, minWidth: 0 },
   propertyName: { fontSize: 14, fontWeight: "700", color: Colors.primaryDark },
