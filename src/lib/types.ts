@@ -67,4 +67,5 @@ export interface MediaItem {
   id: number;
   url: string;
   sortOrder: number;
+  isCover: boolean;
 }

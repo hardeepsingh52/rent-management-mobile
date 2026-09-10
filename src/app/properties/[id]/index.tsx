@@ -1,6 +1,10 @@
 import { PhotoCarousel } from "@/components/photo-carousel";
 import { Colors } from "@/constants/colors";
-import { getPropertyMedia, uploadPropertyPhotos } from "@/lib/media-api";
+import {
+  getPropertyMedia,
+  setPropertyMediaCover,
+  uploadPropertyPhotos,
+} from "@/lib/media-api";
 import { getProperty } from "@/lib/properties-api";
 import { useSession } from "@/lib/session-context";
 import type { MediaItem, Property, Unit } from "@/lib/types";
@@ -20,9 +24,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const MAX_PROPERTY_PHOTOS = 5; // mirrors AddPropertyMediaCommandHandler's MaxPhotosPerProperty
- // No vacancy status is tracked per property yet, so occupancy is a placeholder:
- // any property with units counts as fully occupied. Same logic as the dashboard.
- function propertyOccupancy(property: Property): number {
+// No vacancy status is tracked per property yet, so occupancy is a placeholder:
+// any property with units counts as fully occupied. Same logic as the dashboard.
+function propertyOccupancy(property: Property): number {
   return property.units.length > 0 ? 100 : 0;
 }
 
@@ -46,8 +50,9 @@ export default function PropertyDetailScreen() {
   const [photos, setPhotos] = useState<MediaItem[]>([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [settingCover, setSettingCover] = useState(false);
 
-    const load = useCallback(async () => {
+  const load = useCallback(async () => {
     try {
       setError(null);
       const [data, media] = await Promise.all([
@@ -72,7 +77,10 @@ export default function PropertyDetailScreen() {
 
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert("Permission needed", "Allow photo library access to add property photos.");
+      Alert.alert(
+        "Permission needed",
+        "Allow photo library access to add property photos.",
+      );
       return;
     }
 
@@ -90,9 +98,27 @@ export default function PropertyDetailScreen() {
       await uploadPropertyPhotos(id, result.assets, photos.length, user.token);
       setPhotos(await getPropertyMedia(id, user.token));
     } catch (err) {
-      Alert.alert("Upload failed", err instanceof Error ? err.message : "Please try again.");
+      Alert.alert(
+        "Upload failed",
+        err instanceof Error ? err.message : "Please try again.",
+      );
     } finally {
       setUploadingPhoto(false);
+    }
+  }
+
+  async function handleSetCover(mediaId: number) {
+    setSettingCover(true);
+    try {
+      await setPropertyMediaCover(id, mediaId, user.token);
+      setPhotos(await getPropertyMedia(id, user.token));
+    } catch (err) {
+      Alert.alert(
+        "Couldn't set cover photo",
+        err instanceof Error ? err.message : "Please try again.",
+      );
+    } finally {
+      setSettingCover(false);
     }
   }
   useFocusEffect(
@@ -117,8 +143,6 @@ export default function PropertyDetailScreen() {
     );
   }
 
-    
-
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
@@ -141,12 +165,23 @@ export default function PropertyDetailScreen() {
             })
           }
         >
-          <MaterialCommunityIcons name="plus" size={22} color={Colors.primaryDark} />
+          <MaterialCommunityIcons
+            name="plus"
+            size={22}
+            color={Colors.primaryDark}
+          />
         </Pressable>
       </View>
 
-         <ScrollView contentContainerStyle={styles.content}>
-        <PhotoCarousel photos={photos} onAddPhoto={handleAddPhoto} uploading={uploadingPhoto} />
+      <ScrollView contentContainerStyle={styles.content}>
+        <PhotoCarousel
+          photos={photos}
+          maxPhotos={MAX_PROPERTY_PHOTOS}
+          onAddPhoto={handleAddPhoto}
+          onSetCover={handleSetCover}
+          uploading={uploadingPhoto}
+          settingCover={settingCover}
+        />
 
         <View style={styles.propertyInfoCard}>
           <View style={styles.propertyInfoText}>
@@ -232,7 +267,11 @@ export default function PropertyDetailScreen() {
             })
           }
         >
-          <MaterialCommunityIcons name="plus" size={14} color={Colors.accentOrange} />
+          <MaterialCommunityIcons
+            name="plus"
+            size={14}
+            color={Colors.accentOrange}
+          />
           <Text style={styles.addUnitLinkText}>Add unit</Text>
         </Pressable>
       </ScrollView>
@@ -297,7 +336,7 @@ const styles = StyleSheet.create({
   },
   unitsCount: { fontSize: 12, color: Colors.textMuted },
   empty: { color: Colors.textMutedDark, fontSize: 13 },
-    propertyInfoCard: {
+  propertyInfoCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -307,7 +346,11 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   propertyInfoText: { flex: 1, minWidth: 0 },
-  propertyInfoName: { fontSize: 14, fontWeight: "700", color: Colors.primaryDark },
+  propertyInfoName: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: Colors.primaryDark,
+  },
   propertyInfoSubtitle: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
   badge: {
     backgroundColor: Colors.tealTint,
@@ -327,7 +370,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   unitBeds: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
-  unitStatusPill: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 },
+  unitStatusPill: {
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
   unitStatusText: { fontSize: 10, fontWeight: "600" },
   addUnitLink: {
     flexDirection: "row",
@@ -337,6 +384,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginTop: 4,
   },
-  addUnitLinkText: { fontSize: 12, fontWeight: "600", color: Colors.accentOrange },
+  addUnitLinkText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: Colors.accentOrange,
+  },
   unitLabel: { fontSize: 14, fontWeight: "700", color: Colors.primaryDark },
 });

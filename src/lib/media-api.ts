@@ -33,16 +33,20 @@ async function uploadOnePhoto(
   const mimeType = photo.mimeType ?? "image/jpeg";
   const fileExtension = EXTENSION_BY_MIME_TYPE[mimeType] ?? ".jpg";
 
-  const uploadUrlResponse = await backendFetch(`${basePath}/media/upload-url`, token, {
-    method: "POST",
-    body: JSON.stringify({ fileExtension }),
-  });
+  const uploadUrlResponse = await backendFetch(
+    `${basePath}/media/upload-url`,
+    token,
+    {
+      method: "POST",
+      body: JSON.stringify({ fileExtension }),
+    },
+  );
   if (!uploadUrlResponse.ok) {
     throw new Error(await extractErrorMessage(uploadUrlResponse));
   }
   const { blobPath, uploadUrl } = await uploadUrlResponse.json();
 
-    // Azure Blob's "Put Blob" requires x-ms-blob-type on a direct SAS upload.
+  // Azure Blob's "Put Blob" requires x-ms-blob-type on a direct SAS upload.
   // On native, expo-file-system's File.upload() sends the raw bytes as the body
   // (BINARY_CONTENT, the default - not a multipart wrapper). expo-file-system's
   // File class is Android/iOS/tvOS only per its own docs - web isn't supported -
@@ -107,7 +111,12 @@ export function uploadPropertyPhotos(
   startingSortOrder: number,
   token: string,
 ) {
-  return uploadPhotos(`/properties/${propertyId}`, photos, startingSortOrder, token);
+  return uploadPhotos(
+    `/properties/${propertyId}`,
+    photos,
+    startingSortOrder,
+    token,
+  );
 }
 
 export function getUnitMedia(unitId: string, token: string) {
@@ -120,5 +129,27 @@ export function uploadUnitPhotos(
   startingSortOrder: number,
   token: string,
 ) {
-  return uploadPhotos(`/properties/units/${unitId}`, photos, startingSortOrder, token);
+  return uploadPhotos(
+    `/properties/units/${unitId}`,
+    photos,
+    startingSortOrder,
+    token,
+  );
+}
+
+export async function setPropertyMediaCover(
+  propertyId: string,
+  mediaId: number,
+  token: string,
+): Promise<void> {
+  const response = await backendFetch(
+    `/properties/${propertyId}/media/${mediaId}/cover`,
+    token,
+    {
+      method: "POST",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(await extractErrorMessage(response));
+  }
 }
