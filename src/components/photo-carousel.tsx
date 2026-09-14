@@ -22,8 +22,10 @@ interface PhotoCarouselProps {
   maxPhotos: number;
   onAddPhoto: () => void;
   onSetCover: (mediaId: number) => void;
+  onDeletePhoto: (mediaId: number) => void;
   uploading?: boolean;
   settingCover?: boolean;
+  deleting?: boolean;
 }
 
 export function PhotoCarousel({
@@ -31,10 +33,13 @@ export function PhotoCarousel({
   maxPhotos,
   onAddPhoto,
   onSetCover,
+  onDeletePhoto,
   uploading,
   settingCover,
+  deleting,
 }: PhotoCarouselProps) {
   const [width, setWidth] = useState(0);
+  const [editMode, setEditMode] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
   const scrollDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -49,6 +54,7 @@ export function PhotoCarousel({
 
   useEffect(() => {
     setActiveIndex(0);
+    setEditMode(false);
     scrollViewRef.current?.scrollTo({ x: 0, animated: false });
   }, [orderedPhotos[0]?.id]);
 
@@ -99,25 +105,56 @@ export function PhotoCarousel({
         </ScrollView>
       )}
 
-      <Pressable
-        style={[
-          styles.addButton,
-          photos.length >= maxPhotos && styles.addButtonDisabled,
-        ]}
-        onPress={onAddPhoto}
-        disabled={uploading || photos.length >= maxPhotos}
-      >
-        {uploading ? (
-          <ActivityIndicator size="small" color={Colors.white} />
-        ) : (
+      {!editMode && (
+        <Pressable
+          style={[
+            styles.addButton,
+            photos.length >= maxPhotos && styles.addButtonDisabled,
+          ]}
+          onPress={onAddPhoto}
+          disabled={uploading || photos.length >= maxPhotos}
+        >
+          {uploading ? (
+            <ActivityIndicator size="small" color={Colors.white} />
+          ) : (
+            <MaterialCommunityIcons
+              name="camera-plus-outline"
+              size={16}
+              color={Colors.white}
+            />
+          )}
+        </Pressable>
+      )}
+      {photos.length > 0 && (
+        <Pressable
+          style={[styles.addButton, styles.editToggle]}
+          onPress={() => setEditMode((prev) => !prev)}
+        >
           <MaterialCommunityIcons
-            name="camera-plus-outline"
+            name={editMode ? "close" : "pencil-outline"}
             size={16}
             color={Colors.white}
           />
-        )}
-      </Pressable>
-      {photos.length > 0 && (
+        </Pressable>
+      )}
+      {editMode && photos.length > 0 && (
+        <Pressable
+          style={styles.deleteButton}
+          onPress={() => onDeletePhoto(orderedPhotos[activeIndex].id)}
+          disabled={deleting}
+        >
+          {deleting ? (
+            <ActivityIndicator size="small" color={Colors.white} />
+          ) : (
+            <MaterialCommunityIcons
+              name="trash-can-outline"
+              size={16}
+              color={Colors.white}
+            />
+          )}
+        </Pressable>
+      )}
+      {!editMode && photos.length > 0 && (
         <Pressable
           style={styles.coverButton}
           onPress={() => onSetCover(orderedPhotos[activeIndex].id)}
@@ -212,4 +249,16 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   countBadgeText: { fontSize: 10, fontWeight: "600", color: Colors.white },
+  editToggle: { top: 48 },
+  deleteButton: {
+    position: "absolute",
+    top: 10,
+    left: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(180, 40, 30, 0.75)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });

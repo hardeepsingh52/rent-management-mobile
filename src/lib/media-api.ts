@@ -153,3 +153,21 @@ export async function setPropertyMediaCover(
     throw new Error(await extractErrorMessage(response));
   }
 }
+
+export async function deletePropertyMedia(
+  propertyId: string,
+  mediaId: number,
+  token: string,
+): Promise<void> {
+  const response = await backendFetch(
+    `/properties/${propertyId}/media/delete`,
+    token,
+    {
+      method: "POST",
+      body: JSON.stringify({ mediaIds: [mediaId] }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(await extractErrorMessage(response));
+  }
+}

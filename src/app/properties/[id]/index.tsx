@@ -1,10 +1,12 @@
 import { PhotoCarousel } from "@/components/photo-carousel";
 import { Colors } from "@/constants/colors";
 import {
+  deletePropertyMedia,
   getPropertyMedia,
   setPropertyMediaCover,
   uploadPropertyPhotos,
 } from "@/lib/media-api";
+
 import { getProperty } from "@/lib/properties-api";
 import { useSession } from "@/lib/session-context";
 import type { MediaItem, Property, Unit } from "@/lib/types";
@@ -51,6 +53,7 @@ export default function PropertyDetailScreen() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [settingCover, setSettingCover] = useState(false);
+  const [deletingPhoto, setDeletingPhoto] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -143,6 +146,30 @@ export default function PropertyDetailScreen() {
     );
   }
 
+  function handleDeletePhoto(mediaId: number) {
+    Alert.alert("Delete photo?", "This can't be undone.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          setDeletingPhoto(true);
+          try {
+            await deletePropertyMedia(id, mediaId, user.token);
+            setPhotos(await getPropertyMedia(id, user.token));
+          } catch (err) {
+            Alert.alert(
+              "Couldn't delete photo",
+              err instanceof Error ? err.message : "Please try again.",
+            );
+          } finally {
+            setDeletingPhoto(false);
+          }
+        },
+      },
+    ]);
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
@@ -179,8 +206,10 @@ export default function PropertyDetailScreen() {
           maxPhotos={MAX_PROPERTY_PHOTOS}
           onAddPhoto={handleAddPhoto}
           onSetCover={handleSetCover}
+          onDeletePhoto={handleDeletePhoto}
           uploading={uploadingPhoto}
           settingCover={settingCover}
+          deleting={deletingPhoto}
         />
 
         <View style={styles.propertyInfoCard}>
