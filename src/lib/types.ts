@@ -69,3 +69,9 @@ export interface MediaItem {
   sortOrder: number;
   isCover: boolean;
 }
+
+export interface CreateTenantInviteResult {
+  token: string;
+  inviteUrl: string;
+  expiresAt: string;
+}
