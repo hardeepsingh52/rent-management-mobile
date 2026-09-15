@@ -9,7 +9,7 @@ import {
 import { useSessionContext } from "@/lib/session-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { Link, useRouter } from "expo-router";
+import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -26,6 +26,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { registered } = useLocalSearchParams<{ registered?: string }>();
   const { signIn } = useSessionContext();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -118,6 +119,12 @@ export default function LoginScreen() {
             Log in to manage your properties, tenants, and leases.
           </Text>
 
+          {registered === "1" && (
+            <Text style={styles.success}>
+              Registration successful. Please verify your email and log in again.
+            </Text>
+          )}
+
           {error && <Text style={styles.error}>{error}</Text>}
 
           <Text style={styles.label}>Email</Text>
@@ -194,6 +201,10 @@ export default function LoginScreen() {
             )}
           </Pressable>
 
+          <Link href="/register" style={styles.footerLink}>
+            Don&apos;t have an account? Sign up
+          </Link>
+
           {showBiometric && (
             <>
               <View style={styles.dividerRow}>
@@ -248,6 +259,15 @@ const styles = StyleSheet.create({
     marginBottom: 28,
     lineHeight: 19,
   },
+  success: {
+    backgroundColor: Colors.tealTint,
+    color: Colors.accentTeal,
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 16,
+    fontSize: 14,
+    fontWeight: "600",
+  },
   error: {
     backgroundColor: Colors.errorBg,
     color: Colors.errorText,
@@ -255,6 +275,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 16,
     fontSize: 14,
+  },
+  footerLink: {
+    textAlign: "center",
+    color: Colors.textMuted,
+    fontSize: 13,
+    marginTop: 18,
   },
   label: { fontSize: 13, fontWeight: "600", color: Colors.primaryDark },
   inputWrapper: {

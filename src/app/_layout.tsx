@@ -27,6 +27,7 @@ function RootNavigation() {
         <Stack.Protected guard={!user}>
           <Stack.Screen name="(auth)/onboarding" />
           <Stack.Screen name="(auth)/login" />
+          <Stack.Screen name="(auth)/register" />
           <Stack.Screen
             name="(auth)/forgot-password"
             options={{ headerShown: true, title: "Forgot password" }}

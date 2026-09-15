@@ -1,6 +1,6 @@
 import { API_BASE_URL, InvalidRefreshTokenError } from "./api-client";
 import { extractErrorMessage } from "./api-error";
-import type { SessionUser } from "./types";
+import type { RegisterUserInput, SessionUser } from "./types";
 
 function toSessionUser(data: any): SessionUser {
   return {
@@ -28,6 +28,23 @@ export async function login(
   }
 
   return toSessionUser(await response.json());
+}
+
+export async function register(input: RegisterUserInput): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      Email: input.email,
+      FullName: input.fullName,
+      Password: input.password,
+      UserType: input.userType,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await extractErrorMessage(response));
+  }
 }
 
 export async function refreshAccessToken(

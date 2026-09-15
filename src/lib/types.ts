@@ -75,3 +75,10 @@ export interface CreateTenantInviteResult {
   inviteUrl: string;
   expiresAt: string;
 }
+
+export interface RegisterUserInput {
+  fullName: string;
+  email: string;
+  password: string;
+  userType: "Landlord" | "Contractor";
+}
