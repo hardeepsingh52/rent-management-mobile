@@ -87,12 +87,13 @@ export default function PropertyDetailScreen() {
       return;
     }
 
-   const result = await ImagePicker.launchImageLibraryAsync({
-  mediaTypes: ["images"],
-  allowsMultipleSelection: true,
-  selectionLimit: MAX_PROPERTY_PHOTOS - photos.length,
-  preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
-});
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: true,
+      selectionLimit: MAX_PROPERTY_PHOTOS - photos.length,
+      preferredAssetRepresentationMode:
+        ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+    });
     if (result.canceled || result.assets.length === 0) {
       return;
     }
