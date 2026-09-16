@@ -82,3 +82,7 @@ export interface RegisterUserInput {
   password: string;
   userType: "Landlord" | "Contractor";
 }
+
+export interface UpdateUnitInput extends CreateUnitInput {
+  status: string;
+}

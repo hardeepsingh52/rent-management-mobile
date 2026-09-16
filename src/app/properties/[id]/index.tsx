@@ -188,6 +188,18 @@ export default function PropertyDetailScreen() {
         <Pressable
           style={styles.iconButton}
           onPress={() =>
+            router.push({ pathname: "/properties/[id]/edit", params: { id } })
+          }
+        >
+          <MaterialCommunityIcons
+            name="pencil-outline"
+            size={18}
+            color={Colors.primaryDark}
+          />
+        </Pressable>
+        <Pressable
+          style={styles.iconButton}
+          onPress={() =>
             router.push({
               pathname: "/properties/[id]/units/new",
               params: { id },

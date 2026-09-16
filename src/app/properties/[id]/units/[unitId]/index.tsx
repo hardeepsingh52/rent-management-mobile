@@ -22,10 +22,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const MAX_UNIT_PHOTOS = 10; // mirrors AddUnitMediaCommandHandler's MaxPhotosPerUnit
 
-function comingSoon(feature: string) {
-  Alert.alert("Coming soon", `${feature} isn't wired up yet.`);
-}
-
 function unitStatusTint(status: string): string {
   return status.toLowerCase() === "occupied"
     ? Colors.accentTeal
@@ -42,7 +38,7 @@ export default function UnitDetailScreen() {
   const { id, unitId } = useLocalSearchParams<{ id: string; unitId: string }>();
   const user = useSession();
   const router = useRouter();
-   const [unit, setUnit] = useState<Unit | null>(null);
+  const [unit, setUnit] = useState<Unit | null>(null);
   const [photos, setPhotos] = useState<MediaItem[]>([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,7 +74,10 @@ export default function UnitDetailScreen() {
 
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert("Permission needed", "Allow photo library access to add unit photos.");
+      Alert.alert(
+        "Permission needed",
+        "Allow photo library access to add unit photos.",
+      );
       return;
     }
 
@@ -98,7 +97,10 @@ export default function UnitDetailScreen() {
       await uploadUnitPhotos(unitId, result.assets, photos.length, user.token);
       setPhotos(await getUnitMedia(unitId, user.token));
     } catch (err) {
-      Alert.alert("Upload failed", err instanceof Error ? err.message : "Please try again.");
+      Alert.alert(
+        "Upload failed",
+        err instanceof Error ? err.message : "Please try again.",
+      );
     } finally {
       setUploadingPhoto(false);
     }
@@ -142,7 +144,12 @@ export default function UnitDetailScreen() {
           </Text>
           <Pressable
             style={styles.iconButton}
-            onPress={() => comingSoon("Edit unit")}
+            onPress={() =>
+              router.push({
+                pathname: "/properties/[id]/units/[unitId]/edit",
+                params: { id, unitId },
+              })
+            }
           >
             <MaterialCommunityIcons
               name="pencil-outline"
@@ -154,7 +161,10 @@ export default function UnitDetailScreen() {
 
         <View style={styles.badgeRow}>
           <View
-            style={[styles.badge, { backgroundColor: unitStatusBg(unit.status) }]}
+            style={[
+              styles.badge,
+              { backgroundColor: unitStatusBg(unit.status) },
+            ]}
           >
             <Text
               style={[styles.badgeText, { color: unitStatusTint(unit.status) }]}
@@ -167,7 +177,7 @@ export default function UnitDetailScreen() {
           </View>
         </View>
 
-                      <View style={styles.mediaSection}>
+        <View style={styles.mediaSection}>
           <Text style={styles.sectionTitle}>Media</Text>
           <PhotoStrip
             photos={photos}
@@ -191,26 +201,38 @@ export default function UnitDetailScreen() {
 
         <View style={styles.statsRow}>
           <View style={styles.statTile}>
-            <MaterialCommunityIcons name="bed-outline" size={16} color={Colors.accentOrange} />
+            <MaterialCommunityIcons
+              name="bed-outline"
+              size={16}
+              color={Colors.accentOrange}
+            />
             <Text style={styles.statValue}>{unit.bedrooms}</Text>
             <Text style={styles.statLabel}>
               {unit.bedrooms === 1 ? "Bedroom" : "Bedrooms"}
             </Text>
           </View>
           <View style={styles.statTile}>
-            <MaterialCommunityIcons name="shower" size={16} color={Colors.accentOrange} />
+            <MaterialCommunityIcons
+              name="shower"
+              size={16}
+              color={Colors.accentOrange}
+            />
             <Text style={styles.statValue}>{unit.bathrooms}</Text>
             <Text style={styles.statLabel}>
               {unit.bathrooms === 1 ? "Bathroom" : "Bathrooms"}
             </Text>
           </View>
           <View style={styles.statTile}>
-            <MaterialCommunityIcons name="ruler-square" size={16} color={Colors.accentOrange} />
+            <MaterialCommunityIcons
+              name="ruler-square"
+              size={16}
+              color={Colors.accentOrange}
+            />
             <Text style={styles.statValue}>{unit.squareFeet}</Text>
             <Text style={styles.statLabel}>Sq ft</Text>
           </View>
         </View>
-           </ScrollView>
+      </ScrollView>
       <PhotoViewerModal
         photos={photos}
         visible={viewerIndex !== null}
@@ -291,6 +313,11 @@ const styles = StyleSheet.create({
     padding: 12,
     alignItems: "center",
   },
-  statValue: { fontSize: 15, fontWeight: "700", color: Colors.primaryDark, marginTop: 6 },
+  statValue: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: Colors.primaryDark,
+    marginTop: 6,
+  },
   statLabel: { fontSize: 10, color: Colors.textMuted },
 });
