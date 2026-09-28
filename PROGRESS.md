@@ -26,6 +26,160 @@ lives there rather than being duplicated here.
 - **Canadian & Provincial Tenancy Law Compliance (Federal, Ontario, Manitoba)**: same standing
   requirement as the web repo — see this project's `AGENTS.md` for the full text.
 
+## 2026-09-28 — Claude (Windows) built in-app notifications + FCM push, then fought EAS Build for most of a session getting both dev-client builds to actually compile
+
+- **Why now**: the backend shipped a full `Notifications` module (`PropertyManagementRepo`'s `Notifications/` domain —
+  `GetMyNotificationsQuery`, `GetUnreadNotificationCountQuery`, `MarkNotificationReadCommand`,
+  `RegisterDeviceTokenCommand`) backed by real Firebase Cloud Messaging (`FcmPushNotificationSender.cs`, using the
+  Firebase Admin SDK). The mobile bell icon was still a `comingSoon()` placeholder. Read the backend contract directly
+  from `NotificationsController.cs`/the command/query files rather than guessing: `GET /api/v1/notifications`
+  (`?unreadOnly=`), `GET /notifications/unread-count`, `POST /notifications/{id}/read`,
+  `POST /notifications/device-token` (`{ Token, Platform }`).
+- **Critical early finding that shaped the whole approach**: `FcmPushNotificationSender.SendAsync` calls
+  `FirebaseMessaging.DefaultInstance.SendAsync` with a raw `deviceToken` — meaning the backend expects a genuine **FCM
+  registration token**, not an Expo push token and not a raw APNs token. This ruled out `expo-notifications`'
+  `getDevicePushTokenAsync()` (which returns a raw APNs token on iOS, not an FCM token) and meant
+  `@react-native-firebase/messaging` (the real native FCM SDK, which internally exchanges the APNs token for an FCM
+  token on iOS) was the only correct choice. That decision cascaded into everything below: native Firebase modules
+  mean Expo Go can no longer run this app at all — an EAS **development** build profile (`eas.json`,
+  `developmentClient: true`) and a custom dev client became mandatory just to keep developing.
+- **iOS push needs a paid Apple Developer account** (APNs requires an APNs Auth Key, which only a paid membership can
+  generate) — user confirmed they have one, so both platforms were built for real rather than deferring iOS.
+- **Built**: `NotificationItem` type (`types.ts`); `notifications-api.ts`
+  (`getMyNotifications`/`getUnreadNotificationCount`/`markNotificationRead`/`registerDeviceToken`, same
+  `backendFetch`/`extractErrorMessage` pattern as every other API file); `push-notifications.ts`
+  (`registerForPushNotifications` — requests permission, grabs the FCM token, registers it; `subscribeToTokenRefresh`;
+  `subscribeToForegroundMessages`, using `expo-notifications` only for *displaying* a local notification when a
+  foreground FCM message arrives, since FCM doesn't auto-show a banner while the app is foregrounded); a root
+  `index.js` custom entry point (`messaging().setBackgroundMessageHandler(...)` registered outside the React tree,
+  required for Android to handle push while killed — package.json `"main"` changed from `"expo-router/entry"` to
+  `"./index.js"`); `_layout.tsx` wired to call `registerForPushNotifications`/`subscribeToTokenRefresh` in a
+  `useEffect` keyed on `user?.id` (deliberately **not** `user?.token` — the access token rotates on every refresh,
+  which would otherwise re-run registration, and re-request permission, constantly); a new `notifications.tsx` screen
+  (list, mark-as-read, pull-to-refresh); the dashboard bell wired to the real unread count instead of a static dot.
+- **Real bug caught during guided-coding review, before any of the build work started**: the user's own hand-typed
+  edit to `tenants.tsx`'s `handleSubmit` left stray code *outside* the try/catch that called `createTenantInvite` a
+  second time unconditionally (sending every invite twice) plus a redundant `load()`/`setSentEmail` — caught by
+  reading the diff before committing, not by running the app. Fixed by moving `load()` inside the `try` and deleting
+  the duplicate lines.
+- **Separately, live during manual verification of the tenants resend flow**: a real backend outage (Azure App
+  Service failing to start — HTTP 500.30) surfaced a pre-existing bug in `api-error.ts`: on a non-JSON response body,
+  `extractErrorMessage` fell back to returning the **raw response text**, which happened to be IIS's full HTML error
+  page — rendered verbatim into the login screen. Fixed to fall back to the generic "Something went wrong" message
+  instead, same as the already-handled empty-body case.
+- **iOS bundle ID had to change from Expo's placeholder** (`com.anonymous.rent-management-mobile`) to a real value
+  before registering with Firebase/Apple. First picked `com.domuspro.app` (brand-named, at the user's request) — but
+  had to be reverted to `com.harrdeepsteam.rentmanagementmobile` (matching Android's package name) after the
+  downloaded `GoogleService-Info.plist`'s `BUNDLE_ID` turned out to already be registered in Firebase under that
+  value instead. Caught by actually parsing the downloaded plist (`grep -A1 BUNDLE_ID`) rather than assuming the
+  console steps matched what was typed.
+- **Firebase console navigation note**: the redesigned Firebase console moved Cloud Messaging's APNs-key upload out of
+  the "Project settings" tabs entirely — the direct URL
+  `console.firebase.google.com/project/<id>/settings/cloudmessaging` still works and is more reliable than the nav.
+- **Apple's newer APNs key creation flow forces an upfront, irreversible choice**: "Environment" (Sandbox /
+  Production / combined) and "Key Restriction" (Team Scoped vs topic-specific), which Apple says can't be changed
+  after saving. Used the combined Sandbox-and-Production option so one key covers both the dev-client (Sandbox) and
+  any future TestFlight/App Store (Production) builds, uploaded to **both** the "development" and "production" APNs
+  slots in Firebase's Apple-app-configuration screen.
+- **`eas-cli`'s own Apple Developer Portal authentication is currently broken** — `Authentication with Apple
+  Developer Portal failed! iTunes service key is empty`, a known, still-open upstream bug
+  (github.com/expo/eas-cli issues #4392/#4394, filed within the last two weeks). Upgrading `eas-cli` 23.2.0 → 24.8.0
+  did not fix it. Worked around entirely by **not** letting EAS talk to Apple's API at all: generated every iOS
+  credential manually and fed them to EAS via a local `credentials.json` (gitignored) +
+  `eas.json`'s `ios.credentialsSource: "local"` on the `development` profile.
+- **Manually generating iOS credentials on Windows (no Xcode/macOS available)**:
+  - CSR + private key via plain `openssl genrsa`/`openssl req -new -subj "..."` — Git Bash on Windows mangles a
+    leading `/` in `-subj` into an MSYS path; fixed by prefixing the command with `MSYS_NO_PATHCONV=1`.
+  - Uploaded the CSR to Apple's "Apple Development" certificate flow, downloaded the `.cer`.
+  - Registered the test device by UDID (found via `get.udid.io`'s Safari-installed profile, since no Mac/iTunes was
+    available either) and generated an **iOS App Development** provisioning profile.
+  - Converted `.cer` + the private key into a `.p12` via `openssl pkcs12 -export`. **First attempt failed at build
+    time** — `macOS could not verify the PKCS#12 MAC` during EAS's "Prepare credentials" phase — root-caused to
+    OpenSSL 3.x defaulting to AES-256-CBC encryption for the PKCS#12 container, which macOS's `security`/Keychain
+    tooling (used by EAS's own Mac build servers) can't read regardless of a correct password. Fixed by regenerating
+    with `openssl pkcs12 -export -legacy` (RC2/3DES-compatible), verified locally with
+    `openssl pkcs12 -legacy -in ... -noout -passin ...` before retrying the build.
+  - **Provisioning profile was generated against the wrong App ID** on the first pass —
+    `com.anonymous.rent-management-mobile` (an old Expo-placeholder App ID that already existed in the Apple account
+    from an earlier attempt) instead of the intended `com.harrdeepsteam.rentmanagementmobile`, which **hadn't
+    actually been registered as an App ID yet** — only discovered because the profile-creation dropdown only listed
+    two App IDs, neither the right one. Fixed by explicitly registering the missing App ID (with Push Notifications
+    capability checked) and regenerating the profile against it. Verified the fix by extracting the plist from the
+    signed `.mobileprovision` (`openssl smime -verify -noverify -inform der -in ...`) and checking
+    `application-identifier` directly, rather than trusting the portal UI.
+- **`npm ci` / `package-lock.json` failures recurred three separate times across different build attempts** — same
+  symptom each time (`npm error EUSAGE ... Missing: typescript@5.9.3 from lock file`), same root mechanism: **a plain
+  `npm install` on this machine doesn't always regenerate a lock file that `npm ci` (EAS's strict, platform-agnostic
+  clean-install check) accepts**, and `npm ci --dry-run` locally didn't catch it either (weaker validation when
+  `node_modules` already exists). Root cause finally traced with `grep -rl '"typescript": *"5\.9\.3"' node_modules`:
+  `react-native-worklets` pins its **own**, separate, exact `typescript: 5.9.3` as a `devDependency`, distinct from
+  this project's root `~6.0.3`. Whether that duplicate copy's resolved-tree entry survived a given `npm install` run
+  varied (it silently vanished again after `npx expo install expo-build-properties` triggered its own internal `npm
+  install`), so regenerating the lock file only fixed it until the next `npm install`. The permanent fix: added
+  `"overrides": { "typescript": "$typescript" }` to `package.json`, forcing every nested `typescript` resolution
+  (including `react-native-worklets`'s) onto the single root version — confirmed via
+  `node -e "...node_modules/typescript versions..."` showing only `6.0.3` anywhere in the tree afterward, and by
+  diffing the actual git-committed blob (`git show <sha>:package-lock.json | grep 5.9.3`) to rule out a
+  CRLF-line-ending-corruption theory before landing on the real cause.
+- **`google-services.json`/`GoogleService-Info.plist` are deliberately gitignored** (same reasoning as `.env.local`),
+  but **EAS Build only uploads git-tracked files** — build failed with an explicit "file is missing" error at the
+  native-config step. Fixed by uploading both as EAS file-type environment variables
+  (`eas env:set development --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json`, same for the
+  plist) and converting the static `app.json` into a dynamic `app.config.js` wrapper that substitutes
+  `process.env.GOOGLE_SERVICES_JSON`/`GOOGLE_SERVICE_INFO_PLIST` (which EAS resolves to a real path on its build
+  servers) when present, falling back to `app.json`'s original relative paths otherwise — verified locally with
+  `npx expo config --type public` showing the correct local fallback with the env vars unset.
+- **iOS-only CocoaPods failure**: `@react-native-firebase` resolves Firebase via Swift Package Manager, whose
+  products are static libraries; combined with Expo's default *static* CocoaPods linkage, each RNFirebase pod
+  embedded its own copy of the Firebase SDK, causing duplicate-symbol collisions at `pod install` time (surfaced as
+  `[!] [react-native-firebase] SPM + static linkage is not supported`). Fixed with the `expo-build-properties` plugin
+  set to `ios.useFrameworks: "dynamic"` — the fix RNFirebase's own docs recommend for Expo projects.
+- **Recurring operational gotcha**: EAS's build queue doesn't pick up a newer push to an already-queued build — had
+  to `eas build:cancel` and re-launch several times after pushing a fix, since a queued build would otherwise still
+  fail on the exact bug that had just been fixed, wasting queue time.
+- **Both dev-client builds succeeded** in the end (Android: build `8317629a`; iOS: build `5a6e43a1`) — install links
+  generated, sent to the user. **Neither has been installed/tested on-device yet as of this entry** — the user's
+  registered iPhone wasn't physically with them, and Android on-device testing separately got stuck on dev-server
+  connectivity (next point).
+- **Post-build dev-server connectivity, still partially unresolved**:
+  - `--tunnel` mode needed `@expo/ngrok` (hit a non-interactive-mode install prompt first; installing it
+    **globally** didn't work — Expo's tunnel code resolves it via Node's local module resolution, not the global npm
+    path, so it had to be a project `devDependency` instead), and even then failed with a cryptic
+    `Cannot read properties of undefined (reading 'body')` — root cause: `@expo/ngrok` v4 requires a free ngrok
+    account + auth token now, which wasn't set up. Abandoned in favor of confirming the phone and this PC were
+    actually on the same Wi-Fi subnet (`ipconfig` vs. the phone's own Wi-Fi IP screen) and using plain LAN mode
+    instead — much simpler once confirmed.
+  - Port 8081 was held by a stray Node process left over from a much-earlier web-preview session in the same
+    conversation — found via `netstat -ano`/`Get-Process` and killed before LAN mode would start.
+  - **Today's FCM work broke the web build**: `@react-native-firebase/messaging` has no web implementation at all;
+    `index.js`'s top-level `setBackgroundMessageHandler` call and `push-notifications.ts`'s
+    `subscribeToTokenRefresh`/`subscribeToForegroundMessages` had no `Platform.OS === "web"` guard (unlike
+    `registerForPushNotifications`, which already had one) — crashed with `messaging.default is not a function` the
+    moment a stale browser tab from earlier testing auto-refreshed against the new code via Fast Refresh. Fixed by
+    adding the same web guard to both, plus switching `index.js`'s top-level `messaging()` call to a
+    `Platform.OS !== "web"`-gated `require(...)` (a static top-level `import` can't easily be conditionally skipped).
+    Verified clean via `read_console_messages` after the fix.
+  - **Android on-device LAN connection still failing as of this entry** — `exp://192.168.2.111:8081` gives a "host
+    unreachable" error despite the phone confirmed on the same `192.168.2.x` subnet. Windows Firewall was ruled out
+    (checked the exact matching `node.exe` binary-path rule: enabled, `Allow`, `Any` remote address, active on the
+    current `Private` network profile). Most likely cause: router-level AP/client isolation (common on home/ISP
+    routers — blocks device-to-device traffic even on the same SSID). Attempted the standard bypass, USB
+    `adb reverse tcp:8081 tcp:8081` — downloaded Android `platform-tools` (not previously installed), walked through
+    un-hiding Developer Options on the user's Galaxy A37 (Settings → About phone → tap Build number 7×) and enabling
+    USB debugging, and confirmed Windows sees the phone correctly (Device Manager shows a healthy "ADB Interface"
+    driver, correct Samsung vendor ID `04E8`) — but `adb devices` still lists nothing, even after killing/restarting
+    the adb server and revoking/re-granting USB debugging authorizations, and no "Allow this computer?" popup ever
+    appeared on the phone. **Unresolved** — user was about to try a different computer and USB cable to isolate
+    whether it's a bad cable/port. Next steps for whoever picks this up: (a) confirm cable/port with the swap test in
+    progress, (b) if still stuck, set up a real free ngrok account + `ngrok config add-authtoken` and go back to
+    `--tunnel` mode, or (c) check the home router's admin panel for an AP/client-isolation toggle to disable.
+- **Next step**: resolve the Android USB/LAN connectivity split above, then do the actual on-device verification
+  neither platform has had yet — install both dev-client builds, log in, grant the push permission prompt, confirm a
+  real FCM token gets registered (`POST /notifications/device-token`), and send a real test push from the backend to
+  confirm end-to-end delivery (foreground banner via `expo-notifications`, background/killed-state delivery via the
+  `index.js` handler, tap-to-open navigation). None of that has been confirmed working on a physical device yet —
+  everything above only confirms the builds *compile and install*.
+
 ## 2026-09-10 — Claude (Windows) added property cover-photo selection, on top of the backend's already-merged `IsCover` support
 
 - **Property photo carousel gets a cover-photo picker**: a labeled pill button (star icon + "Set cover" / "Cover" text —

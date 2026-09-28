@@ -49,6 +49,9 @@ export async function registerForPushNotifications(
 }
 
 export function subscribeToTokenRefresh(sessionToken: string): () => void {
+  if (Platform.OS === "web") {
+    return () => {};
+  }
   return messaging().onTokenRefresh((deviceToken) => {
     registerDeviceToken(
       deviceToken,
@@ -63,6 +66,9 @@ export function subscribeToTokenRefresh(sessionToken: string): () => void {
 export function subscribeToForegroundMessages(
   onMessage: () => void,
 ): () => void {
+  if (Platform.OS === "web") {
+    return () => {};
+  }
   return messaging().onMessage(async (remoteMessage) => {
     const title = remoteMessage.notification?.title ?? "New notification";
     const body = remoteMessage.notification?.body ?? "";
