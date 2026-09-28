@@ -13,7 +13,7 @@ export async function extractErrorMessage(response: Response): Promise<string> {
       return Object.values(data.errors).flat().join(" ");
     }
   } catch {
-    return text;
+    return "Something went wrong. Please try again.";
   }
 
   return "Something went wrong. Please try again.";
