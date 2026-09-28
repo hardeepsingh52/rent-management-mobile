@@ -39,6 +39,7 @@ GoogleService-Info.plist
 
 # Manually generated iOS signing credentials
 /ios-credentials/
+/credentials.json
 
 # typescript
 *.tsbuildinfo
