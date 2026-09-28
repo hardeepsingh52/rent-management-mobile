@@ -86,3 +86,27 @@ export interface RegisterUserInput {
 export interface UpdateUnitInput extends CreateUnitInput {
   status: string;
 }
+
+export type TenantInviteStatus =
+  | "Pending"
+  | "Accepted"
+  | "Declined"
+  | "Expired";
+
+export interface TenantInviteListItem {
+  id: number;
+  email: string;
+  unitLabel: string;
+  propertyName: string;
+  createdAt: string;
+  expiresAt: string;
+  status: TenantInviteStatus;
+}
+
+export interface TenantInviteStats {
+  sent: number;
+  pending: number;
+  accepted: number;
+  declined: number;
+  expired: number;
+}

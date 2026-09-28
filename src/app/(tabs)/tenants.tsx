@@ -1,8 +1,6 @@
 import { Colors } from "@/constants/colors";
 import { getMyProperties } from "@/lib/properties-api";
 import { useSession } from "@/lib/session-context";
-import { createTenantInvite } from "@/lib/tenant-invite-api";
-import type { Property } from "@/lib/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -17,6 +15,28 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import {
+  createTenantInvite,
+  getMyTenantInvites,
+  getTenantInviteStats,
+  resendTenantInvite,
+} from "@/lib/tenant-invite-api";
+
+import type {
+  Property,
+  TenantInviteListItem,
+  TenantInviteStats,
+  TenantInviteStatus,
+} from "@/lib/types";
+
+const STATUS_COLORS: Record<TenantInviteStatus, { bg: string; text: string }> =
+  {
+    Pending: { bg: Colors.orangeTint, text: Colors.accentOrange },
+    Accepted: { bg: Colors.tealTint, text: Colors.accentTeal },
+    Declined: { bg: Colors.errorBg, text: Colors.errorText },
+    Expired: { bg: Colors.divider, text: Colors.textMuted },
+  };
+
 export default function TenantsScreen() {
   const user = useSession();
   const router = useRouter();
@@ -29,12 +49,21 @@ export default function TenantsScreen() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [sentEmail, setSentEmail] = useState<string | null>(null);
+  const [invites, setInvites] = useState<TenantInviteListItem[] | null>(null);
+  const [stats, setStats] = useState<TenantInviteStats | null>(null);
+  const [resendingId, setResendingId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     try {
       setLoadError(null);
-      const data = await getMyProperties(user.token);
+      const [data, inviteList, inviteStats] = await Promise.all([
+        getMyProperties(user.token),
+        getMyTenantInvites(user.token),
+        getTenantInviteStats(user.token),
+      ]);
       setProperties(data);
+      setInvites(inviteList);
+      setStats(inviteStats);
       setUnitId(
         (current) => current ?? data.flatMap((p) => p.units)[0]?.id ?? null,
       );
@@ -67,6 +96,7 @@ export default function TenantsScreen() {
       await createTenantInvite(email.trim(), unitId, user.token);
       setSentEmail(email.trim());
       setEmail("");
+      await load();
     } catch (err) {
       setSubmitError(
         err instanceof Error
@@ -75,6 +105,22 @@ export default function TenantsScreen() {
       );
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleResend(invite: TenantInviteListItem) {
+    setSubmitError(null);
+    setResendingId(invite.id);
+    try {
+      await resendTenantInvite(invite.id, user.token);
+      setSentEmail(invite.email);
+      await load();
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "Couldn't resend invite.",
+      );
+    } finally {
+      setResendingId(null);
     }
   }
 
@@ -179,6 +225,95 @@ export default function TenantsScreen() {
             </Pressable>
           </View>
         )}
+
+        {stats && (
+          <View style={styles.statsRow}>
+            <View style={[styles.statChip, { backgroundColor: Colors.white }]}>
+              <Text style={[styles.statText, { color: Colors.primaryDark }]}>
+                {stats.sent} sent
+              </Text>
+            </View>
+            {(
+              [
+                ["Pending", stats.pending],
+                ["Accepted", stats.accepted],
+                ["Declined", stats.declined],
+                ["Expired", stats.expired],
+              ] as [TenantInviteStatus, number][]
+            ).map(([status, count]) => (
+              <View
+                key={status}
+                style={[
+                  styles.statChip,
+                  { backgroundColor: STATUS_COLORS[status].bg },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.statText,
+                    { color: STATUS_COLORS[status].text },
+                  ]}
+                >
+                  {count} {status.toLowerCase()}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {invites !== null && invites.length > 0 && (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Sent invites</Text>
+            {invites.map((invite) => {
+              const canResend =
+                invite.status === "Pending" || invite.status === "Expired";
+              return (
+                <View key={invite.id} style={styles.inviteRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.inviteEmail}>{invite.email}</Text>
+                    <Text style={styles.inviteMeta}>
+                      {invite.propertyName} · {invite.unitLabel}
+                    </Text>
+                    <View style={styles.statusRow}>
+                      <View
+                        style={[
+                          styles.badge,
+                          { backgroundColor: STATUS_COLORS[invite.status].bg },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.badgeText,
+                            { color: STATUS_COLORS[invite.status].text },
+                          ]}
+                        >
+                          {invite.status}
+                        </Text>
+                      </View>
+                      <Text style={styles.inviteMeta}>
+                        {invite.status === "Pending" ? "expires" : "expired"}{" "}
+                        {new Date(invite.expiresAt).toLocaleDateString()}
+                      </Text>
+                    </View>
+                  </View>
+                  {canResend && (
+                    <Pressable
+                      style={styles.resendButton}
+                      onPress={() => handleResend(invite)}
+                      disabled={resendingId === invite.id}
+                    >
+                      {resendingId === invite.id ? (
+                        <ActivityIndicator size="small" />
+                      ) : (
+                        <Text style={styles.resendButtonText}>Resend</Text>
+                      )}
+                    </Pressable>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -279,4 +414,46 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   submitButtonText: { fontSize: 14, fontWeight: "700", color: Colors.white },
+  statsRow: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 20 },
+  statChip: {
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  statText: { fontSize: 12, fontWeight: "700" },
+  sectionTitle: { fontSize: 14, fontWeight: "700", color: Colors.primaryDark },
+  inviteRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingTop: 12,
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: Colors.background,
+  },
+  inviteEmail: { fontSize: 13, fontWeight: "600", color: Colors.primaryDark },
+  inviteMeta: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
+  resendButton: {
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: Colors.orangeTint,
+  },
+  resendButtonText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: Colors.accentOrange,
+  },
+  statusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 4,
+  },
+  badge: {
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  badgeText: { fontSize: 10, fontWeight: "700" },
 });
