@@ -9,9 +9,11 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "infoPlist": {
-        "NSFaceIDUsageDescription": "Allow DomusPRO to use Face ID to log you in."
+        "NSFaceIDUsageDescription": "Allow DomusPRO to use Face ID to log you in.",
+        "ITSAppUsesNonExemptEncryption": false
       },
-      "bundleIdentifier": "com.anonymous.rent-management-mobile"
+      "bundleIdentifier": "com.harrdeepsteam.rentmanagementmobile",
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "adaptiveIcon": {
@@ -23,9 +25,11 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.USE_BIOMETRIC",
-        "android.permission.USE_FINGERPRINT"
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.RECORD_AUDIO"
       ],
-      "package": "com.harrdeepsteam.rentmanagementmobile"
+      "package": "com.harrdeepsteam.rentmanagementmobile",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "output": "static",
@@ -48,7 +52,9 @@
         {
           "photosPermission": "Allow DomusPRO to access your photos to add property and unit photos."
         }
-      ]
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging"
     ],
     "experiments": {
       "typedRoutes": true,

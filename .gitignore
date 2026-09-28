@@ -33,6 +33,13 @@ yarn-error.*
 # local env files
 .env*.local
 
+# Firebase (device-specific, fetched from the Firebase console)
+google-services.json
+GoogleService-Info.plist
+
+# Manually generated iOS signing credentials
+/ios-credentials/
+
 # typescript
 *.tsbuildinfo
 

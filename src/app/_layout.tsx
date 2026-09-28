@@ -1,7 +1,12 @@
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
+import {
+  registerForPushNotifications,
+  subscribeToTokenRefresh,
+} from "@/lib/push-notifications";
 import { SessionProvider, useSessionContext } from "@/lib/session-context";
 import { DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { useEffect } from "react";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -15,6 +20,16 @@ export default function RootLayout() {
 
 function RootNavigation() {
   const { user, loading } = useSessionContext();
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+    registerForPushNotifications(user.token).catch(() => {
+      // Best-effort: push is a nice-to-have, don't block the app on it.
+    });
+    return subscribeToTokenRefresh(user.token);
+  }, [user?.id]);
 
   if (loading) {
     return null;
@@ -45,9 +60,13 @@ function RootNavigation() {
               presentation: "modal",
             }}
           />
-                 <Stack.Screen
+          <Stack.Screen
             name="properties/[id]/units/new"
             options={{ headerShown: false, presentation: "modal" }}
+          />
+          <Stack.Screen
+            name="notifications"
+            options={{ headerShown: true, title: "Notifications" }}
           />
         </Stack.Protected>
       </Stack>

@@ -1,5 +1,6 @@
 import { SideMenu } from "@/components/side-menu";
 import { Colors } from "@/constants/colors";
+import { getUnreadNotificationCount } from "@/lib/notifications-api";
 import { getMyProperties } from "@/lib/properties-api";
 import { useSession, useSessionContext } from "@/lib/session-context";
 import type { Property } from "@/lib/types";
@@ -88,6 +89,7 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const { signOut } = useSessionContext();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   async function handleSignOut() {
     setMenuOpen(false);
@@ -97,8 +99,12 @@ export default function DashboardScreen() {
   const load = useCallback(async () => {
     try {
       setError(null);
-      const data = await getMyProperties(user.token);
+      const [data, count] = await Promise.all([
+        getMyProperties(user.token),
+        getUnreadNotificationCount(user.token),
+      ]);
       setProperties(data);
+      setUnreadCount(count);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to load properties.",
@@ -137,8 +143,15 @@ export default function DashboardScreen() {
         ListHeaderComponent={
           <View>
             <View style={styles.header}>
-              <Pressable style={styles.iconButton} onPress={() => setMenuOpen(true)}>
-                <MaterialCommunityIcons name="menu" size={20} color={Colors.primaryDark} />
+              <Pressable
+                style={styles.iconButton}
+                onPress={() => setMenuOpen(true)}
+              >
+                <MaterialCommunityIcons
+                  name="menu"
+                  size={20}
+                  color={Colors.primaryDark}
+                />
               </Pressable>
               <View style={styles.headerRight}>
                 <Pressable
@@ -153,14 +166,14 @@ export default function DashboardScreen() {
                 </Pressable>
                 <Pressable
                   style={styles.iconButton}
-                  onPress={() => comingSoon("Notifications")}
+                  onPress={() => router.push("/notifications")}
                 >
                   <MaterialCommunityIcons
                     name="bell-outline"
                     size={20}
                     color={Colors.primaryDark}
                   />
-                  <View style={styles.bellDot} />
+                  {unreadCount > 0 && <View style={styles.bellDot} />}
                 </Pressable>
               </View>
               <View style={styles.logoWrap} pointerEvents="none">
@@ -188,7 +201,9 @@ export default function DashboardScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.statsScroll}
             >
-              <View style={[styles.statTile, { backgroundColor: Colors.greenDark }]}>
+              <View
+                style={[styles.statTile, { backgroundColor: Colors.greenDark }]}
+              >
                 <View style={styles.statTopRow}>
                   <MaterialCommunityIcons
                     name="home-city-outline"
@@ -203,38 +218,61 @@ export default function DashboardScreen() {
                   {totalProperties}
                 </Text>
               </View>
-              <View style={[styles.statTile, { backgroundColor: Colors.accentOrange }]}>
+              <View
+                style={[
+                  styles.statTile,
+                  { backgroundColor: Colors.accentOrange },
+                ]}
+              >
                 <View style={styles.statTopRow}>
                   <MaterialCommunityIcons
                     name="door-open"
                     size={15}
                     color={Colors.orangeTint}
                   />
-                  <Text style={[styles.statLabel, { color: Colors.orangeTint }]}>
+                  <Text
+                    style={[styles.statLabel, { color: Colors.orangeTint }]}
+                  >
                     Occupied
                   </Text>
                 </View>
                 <Text style={[styles.statValue, { color: Colors.white }]}>
                   {occupiedUnits}
-                  <Text style={[styles.statValueMuted, { color: Colors.orangeTint }]}>
+                  <Text
+                    style={[
+                      styles.statValueMuted,
+                      { color: Colors.orangeTint },
+                    ]}
+                  >
                     /{totalUnits}
                   </Text>
                 </Text>
               </View>
-              <View style={[styles.statTile, { backgroundColor: Colors.purple }]}>
+              <View
+                style={[styles.statTile, { backgroundColor: Colors.purple }]}
+              >
                 <View style={styles.statTopRow}>
                   <MaterialCommunityIcons
                     name="wrench-outline"
                     size={15}
                     color={Colors.purpleTint}
                   />
-                  <Text style={[styles.statLabel, { color: Colors.purpleTint }]}>
+                  <Text
+                    style={[styles.statLabel, { color: Colors.purpleTint }]}
+                  >
                     Maint.
                   </Text>
                 </View>
-                <Text style={[styles.statValue, { color: Colors.white }]}>0</Text>
+                <Text style={[styles.statValue, { color: Colors.white }]}>
+                  0
+                </Text>
               </View>
-              <View style={[styles.statTile, { backgroundColor: Colors.accentBlue }]}>
+              <View
+                style={[
+                  styles.statTile,
+                  { backgroundColor: Colors.accentBlue },
+                ]}
+              >
                 <View style={styles.statTopRow}>
                   <MaterialCommunityIcons
                     name="alert-circle-outline"
@@ -245,7 +283,9 @@ export default function DashboardScreen() {
                     Vacancy
                   </Text>
                 </View>
-                <Text style={[styles.statValue, { color: Colors.white }]}>0</Text>
+                <Text style={[styles.statValue, { color: Colors.white }]}>
+                  0
+                </Text>
               </View>
             </ScrollView>
 
@@ -297,8 +337,7 @@ export default function DashboardScreen() {
             )}
           </View>
         }
-        
-                renderItem={({ item }) => (
+        renderItem={({ item }) => (
           <Pressable
             style={styles.propertyCard}
             onPress={() =>
@@ -330,7 +369,6 @@ export default function DashboardScreen() {
             </View>
           </Pressable>
         )}
-
         ListFooterComponent={
           properties && properties.length > 0 ? (
             <View style={styles.quickActions}>
@@ -412,7 +450,7 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.listContent}
       />
 
-            <SideMenu
+      <SideMenu
         visible={menuOpen}
         onClose={() => setMenuOpen(false)}
         onNavigate={(path) => router.push(path)}
@@ -514,7 +552,11 @@ const styles = StyleSheet.create({
     alignItems: "baseline",
     marginBottom: 8,
   },
-  rentPeriodTitle: { fontSize: 12, fontWeight: "600", color: Colors.primaryDark },
+  rentPeriodTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: Colors.primaryDark,
+  },
   rentPeriodCaption: { fontSize: 10, color: Colors.textMuted },
   rentProgressTrack: {
     height: 8,
@@ -542,7 +584,11 @@ const styles = StyleSheet.create({
   rentDot: { width: 6, height: 6, borderRadius: 3 },
   rentDotCollected: { backgroundColor: Colors.greenDark },
   rentDotOutstanding: { backgroundColor: Colors.accentOrange },
-  rentDivider: { height: 1, backgroundColor: Colors.divider, marginVertical: 16 },
+  rentDivider: {
+    height: 1,
+    backgroundColor: Colors.divider,
+    marginVertical: 16,
+  },
   sectionHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -573,7 +619,12 @@ const styles = StyleSheet.create({
   },
   propertyInfo: { flex: 1, minWidth: 0 },
   propertyName: { fontSize: 14, fontWeight: "700", color: Colors.primaryDark },
-  propertyType: { fontSize: 11, fontWeight: "600", color: Colors.accentOrange, marginTop: 2 },
+  propertyType: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: Colors.accentOrange,
+    marginTop: 2,
+  },
   propertyCity: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
   badge: {
     backgroundColor: Colors.tealTint,
@@ -609,5 +660,9 @@ const styles = StyleSheet.create({
   quickActionIconOrange: { backgroundColor: Colors.orangeTint },
   quickActionIconBlue: { backgroundColor: Colors.blueTint },
   quickActionIconPurple: { backgroundColor: Colors.purpleTint },
-  quickActionLabel: { fontSize: 12, fontWeight: "600", color: Colors.primaryDark },
+  quickActionLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: Colors.primaryDark,
+  },
 });

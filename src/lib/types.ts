@@ -110,3 +110,13 @@ export interface TenantInviteStats {
   declined: number;
   expired: number;
 }
+
+export interface NotificationItem {
+  id: number;
+  type: string;
+  title: string;
+  body: string;
+  data: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
