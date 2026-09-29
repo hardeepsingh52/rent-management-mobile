@@ -26,6 +26,77 @@ lives there rather than being duplicated here.
 - **Canadian & Provincial Tenancy Law Compliance (Federal, Ontario, Manitoba)**: same standing
   requirement as the web repo — see this project's `AGENTS.md` for the full text.
 
+## 2026-09-28 — Claude (Mac) got both dev-client builds actually working on-device, found the real root cause of the launch crash, and traced a tenant-notifications gap to the backend
+
+- **Picked up right where the 2026-09-28 (Windows) entry below left off**: both dev-client builds compiled
+  successfully there but had never been installed/verified on a physical device. This session did that, hit a
+  real launch crash, root-caused it, rebuilt twice, and confirmed working end-to-end.
+- **First crash on install: `TypeError: undefined is not a function` immediately on launch, both platforms** —
+  looked at first like the installed dev-client binary predating the new Firebase native modules (plausible,
+  since the builds mentioned above were made before this device testing), so an EAS rebuild was done first.
+  Same crash persisted after that rebuild too, which ruled out the native-linking theory and pointed at the JS
+  itself.
+- **Real root cause, found by reading `@react-native-firebase/messaging`'s actual installed exports
+  (`node_modules/@react-native-firebase/messaging/dist/module/index.js`)**: version `26.4.0` (what's pinned in
+  `package.json`) ships **only** the newer modular Firebase API (`getMessaging(app)`, `getToken(messaging)`,
+  named exports) — no default export, no callable `messaging()` factory at all. Both `index.js` (the
+  background-handler registration) and `src/lib/push-notifications.ts` (the whole file) were written against
+  the old v6 namespaced API (`import messaging from "@react-native-firebase/messaging"; messaging()...`), so
+  `messaging` was always `undefined` and `messaging()` threw exactly the reported error, before the app could
+  even render its first screen. The stack trace React Native actually surfaced was a red herring — it pointed
+  into `@expo/metro-runtime`'s own `metroServerLogs.native.ts` (a *secondary* crash inside the error-logging
+  pipeline itself, triggered while trying to report the real error), which is why the true cause took a while
+  to find. Fixed by rewriting both files onto the modular API (`getApp()` + `getMessaging(getApp())` passed
+  into `getToken`/`onTokenRefresh`/`onMessage`/`setBackgroundMessageHandler`) — a pure JS fix, no rebuild
+  needed for this part. One drive-by bug introduced and caught while doing this: naming the modular `onMessage`
+  import the same as `subscribeToForegroundMessages`'s own callback parameter shadowed it; renamed the import
+  to `onFirebaseMessage`.
+- **Second real gap found once the app was actually launching: Android never showed the notification-permission
+  prompt at all** (user had to enable it manually in device Settings), while iOS prompted correctly. Root
+  cause: `@react-native-firebase/messaging`'s `requestPermission()` is effectively an iOS-only API in
+  practice — on Android it just reads back the current permission state without ever triggering the
+  Android 13+ `POST_NOTIFICATIONS` runtime dialog. Fixed by replacing it with `expo-notifications`'
+  `Notifications.requestPermissionsAsync()` in `registerForPushNotifications`, which correctly drives the
+  native prompt on both platforms. Also removed the now-dead `AuthorizationStatus`/`requestPermission` Firebase
+  imports.
+- **Two smaller native-config gaps found on audit, fixed in `app.json`**: `android.permission.POST_NOTIFICATIONS`
+  was missing from the `android.permissions` array (required for the manifest to even allow requesting it on
+  Android 13+), and the `expo-notifications` config plugin itself wasn't registered in `plugins` even though
+  the library is used directly (channels, scheduling) — added both.
+- **Two more EAS dev-client rebuilds** (Android `72dd9526…`, iOS `187bc90d…`, both `finished`) to pick up the
+  `app.json` permission/plugin changes — confirmed working after reinstall: both platforms launch cleanly, iOS
+  and Android both now show their native permission prompts, and a landlord device confirmed receiving a real
+  push end-to-end.
+- **Recurring local dev-server annoyance this session, unrelated to the app itself**: the Mac's LAN IP changed
+  twice under DHCP mid-session (`10.0.0.137` → `10.0.0.153` → `10.0.0.52`), and `.env.local`'s
+  `REACT_NATIVE_PACKAGER_HOSTNAME` doesn't auto-update — each time, the dev-client's QR/deep-link silently
+  pointed at a dead IP ("host unreachable") until manually resynced. Worth a static/reserved IP or a small
+  startup script if this keeps recurring.
+- **Real gap found, confirmed with the user, not a mobile-app bug**: landlord receives push notifications,
+  **tenant does not**. Traced by reading both this repo's client code and the sibling `PropertyManagementRepo`
+  backend directly (not guessed): the mobile client's registration path
+  (`_layout.tsx` → `registerForPushNotifications` → `notifications-api.ts`'s `registerDeviceToken`) is fully
+  role-agnostic — a tenant session registers its FCM token through the exact same code as a landlord, no
+  branch or gap on this side. The backend, however, currently has **exactly one** notification trigger wired
+  up at all (`PropertyManagementRepo` commit `7120e67`): tenant accepts an invite → landlord gets notified.
+  No event exists yet that fires *toward* a tenant (rent-due reminder, maintenance-status change, lease
+  notices, etc.), so a tenant's device token sits registered and ready but nothing is ever sent to it. **No
+  mobile-app work needed for tenants to start receiving pushes** once the backend adds tenant-facing
+  `RaiseNotificationEvent` triggers — the existing generic FCM sender and this app's generic
+  receive/display/list code will work for tenants automatically, unchanged.
+- **Also found while investigating the above, applies to both roles equally, not tenant-specific**: tapping a
+  received notification doesn't navigate anywhere — no `onNotificationOpenedApp`/notification-response listener
+  is wired up anywhere in `push-notifications.ts`. Notifications are receivable and visible (banner + in-app
+  list) for both landlord and tenant, but tap-to-navigate was never built. Scoped and explained to the user
+  (guided-coding mode) but **not implemented this session — explicitly deferred by the user to do themselves
+  tomorrow**, alongside the tenant-facing backend trigger work above.
+- **Next step (user's own words: "I will do it tomorrow")**: (1) backend — add tenant-facing
+  `RaiseNotificationEvent` triggers in `PropertyManagementRepo` targeted at the tenant's `AppUserId`, not just
+  the existing landlord-on-invite-accept path; (2) mobile — wire up tap-to-navigate on notification open
+  (`onNotificationOpenedApp`/`getInitialNotification` from `@react-native-firebase/messaging`, routing based on
+  the notification's `type`/`data` fields already present on `NotificationItem` in `types.ts`). Neither started
+  yet as of this entry.
+
 ## 2026-09-28 — Claude (Windows) built in-app notifications + FCM push, then fought EAS Build for most of a session getting both dev-client builds to actually compile
 
 - **Why now**: the backend shipped a full `Notifications` module (`PropertyManagementRepo`'s `Notifications/` domain —

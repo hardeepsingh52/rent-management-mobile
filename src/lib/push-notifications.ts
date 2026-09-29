@@ -1,4 +1,10 @@
-import messaging from "@react-native-firebase/messaging";
+import { getApp } from "@react-native-firebase/app";
+import {
+  getMessaging,
+  getToken,
+  onMessage as onFirebaseMessage,
+  onTokenRefresh,
+} from "@react-native-firebase/messaging";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { registerDeviceToken } from "./notifications-api";
@@ -32,15 +38,12 @@ export async function registerForPushNotifications(
 
   await ensureAndroidChannel();
 
-  const authStatus = await messaging().requestPermission();
-  const enabled =
-    authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-    authStatus === messaging.AuthorizationStatus.PROVISIONAL;
-  if (!enabled) {
+  const { status } = await Notifications.requestPermissionsAsync();
+  if (status !== "granted") {
     return;
   }
 
-  const deviceToken = await messaging().getToken();
+  const deviceToken = await getToken(getMessaging(getApp()));
   await registerDeviceToken(
     deviceToken,
     Platform.OS === "ios" ? "ios" : "android",
@@ -52,7 +55,7 @@ export function subscribeToTokenRefresh(sessionToken: string): () => void {
   if (Platform.OS === "web") {
     return () => {};
   }
-  return messaging().onTokenRefresh((deviceToken) => {
+  return onTokenRefresh(getMessaging(getApp()), (deviceToken) => {
     registerDeviceToken(
       deviceToken,
       Platform.OS === "ios" ? "ios" : "android",
@@ -69,7 +72,7 @@ export function subscribeToForegroundMessages(
   if (Platform.OS === "web") {
     return () => {};
   }
-  return messaging().onMessage(async (remoteMessage) => {
+  return onFirebaseMessage(getMessaging(getApp()), async (remoteMessage) => {
     const title = remoteMessage.notification?.title ?? "New notification";
     const body = remoteMessage.notification?.body ?? "";
     await Notifications.scheduleNotificationAsync({

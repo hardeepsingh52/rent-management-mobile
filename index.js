@@ -7,8 +7,13 @@ import "expo-router/entry";
 // @react-native-firebase/messaging has no web implementation, so this must
 // stay native-only or it throws during the web bundle's module init.
 if (Platform.OS !== "web") {
-  const messaging = require("@react-native-firebase/messaging").default;
-  messaging().setBackgroundMessageHandler(async (remoteMessage) => {
+  const { getApp } = require("@react-native-firebase/app");
+  const {
+    getMessaging,
+    setBackgroundMessageHandler,
+  } = require("@react-native-firebase/messaging");
+  const messaging = getMessaging(getApp());
+  setBackgroundMessageHandler(messaging, async (remoteMessage) => {
     console.log("Background FCM message:", remoteMessage.messageId);
   });
 }

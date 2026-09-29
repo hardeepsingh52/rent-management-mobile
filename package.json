@@ -57,5 +57,11 @@
     "web": "expo start --web",
     "lint": "expo lint"
   },
-  "private": true
+  "private": true,
+  "allowScripts": {
+    "dtrace-provider@0.8.8": true,
+    "protobufjs@7.6.6": true,
+    "unrs-resolver@1.12.2": true,
+    "@firebase/util@1.15.2": true
+  }
 }
