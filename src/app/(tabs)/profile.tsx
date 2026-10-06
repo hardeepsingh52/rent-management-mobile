@@ -86,7 +86,8 @@ export default function ProfileScreen() {
           <Text style={styles.email}>{user.email}</Text>
         </View>
 
-        <View style={styles.card}>
+
+          <View style={styles.card}>
           <ProfileRow
             icon="account-outline"
             label="Edit profile"
@@ -97,6 +98,12 @@ export default function ProfileScreen() {
             icon="lock-outline"
             label="Change password"
             onPress={() => comingSoon("Change password")}
+          />
+          <View style={styles.divider} />
+          <ProfileRow
+            icon="shield-lock-outline"
+            label="Two-factor authentication"
+            onPress={() => router.push("/security-2fa")}
           />
           <View style={styles.divider} />
           <ProfileRow

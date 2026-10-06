@@ -39,7 +39,7 @@ function RootNavigation() {
     <ThemeProvider value={DefaultTheme}>
       <AnimatedSplashOverlay />
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Protected guard={!user}>
+              <Stack.Protected guard={!user}>
           <Stack.Screen name="(auth)/onboarding" />
           <Stack.Screen name="(auth)/login" />
           <Stack.Screen name="(auth)/register" />
@@ -47,6 +47,8 @@ function RootNavigation() {
             name="(auth)/forgot-password"
             options={{ headerShown: true, title: "Forgot password" }}
           />
+          <Stack.Screen name="(auth)/two-factor-setup" />
+          <Stack.Screen name="(auth)/two-factor-verify" />
         </Stack.Protected>
         <Stack.Protected guard={!!user}>
           <Stack.Screen name="(tabs)" />
@@ -67,6 +69,10 @@ function RootNavigation() {
           <Stack.Screen
             name="notifications"
             options={{ headerShown: true, title: "Notifications" }}
+          />
+          <Stack.Screen
+            name="security-2fa"
+            options={{ headerShown: true, title: "Two-factor authentication" }}
           />
         </Stack.Protected>
       </Stack>

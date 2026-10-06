@@ -26,6 +26,85 @@ lives there rather than being duplicated here.
 - **Canadian & Provincial Tenancy Law Compliance (Federal, Ontario, Manitoba)**: same standing
   requirement as the web repo — see this project's `AGENTS.md` for the full text.
 
+## 2026-10-05 — Claude (Mac) built full mandatory TOTP 2FA against the backend's new auth module
+
+- **Why now**: backend (`PropertyManagementRepo`, checked via its local Swagger at `localhost:5156/swagger` plus
+  reading `AuthController.cs`/`AuthDtos.cs` directly rather than guessing from the sparse Swagger response schemas)
+  shipped a full TOTP-based two-factor module. **Breaking change discovered**: `POST /auth/login` no longer returns
+  a session directly — it now *always* returns `{ setupRequired, twoFactorToken }`, meaning 2FA is mandatory for
+  every account, not opt-in. Full contract: `setupRequired` → `POST /2fa/setup` (QR + shared key) → `POST
+  /2fa/enable` (code) → real session + one-time recovery codes; not `setupRequired` → `POST /2fa/verify` (code) or
+  `POST /2fa/recovery` (recovery code) → real session directly. Authenticated settings endpoints:
+  `GET /2fa/status`, `POST /2fa/recovery-codes/regenerate`, and a replace-authenticator pair
+  (`/2fa/replace/start` + `/2fa/replace/confirm`) for re-enrolling after losing a device.
+- **New dependencies**: `react-native-svg` + `react-native-qrcode-svg` (local QR rendering — the TOTP secret never
+  leaves the device via a third-party QR image API), `expo-screen-capture` (blocks screenshots/recording while
+  recovery codes or the enrollment QR are on screen), `expo-clipboard` (explicit "copy codes" button, since
+  screenshot-blocking means the user needs *some* way to get codes out). None needed an `app.json` config plugin.
+- **Built**: `types.ts` (`TwoFactorChallenge`/`TwoFactorEnrollment`/`TwoFactorEnabled`/`TwoFactorStatus`);
+  `auth-api.ts` rewritten — `login()` now returns a challenge, not a session; added
+  `beginTwoFactorSetup`/`enableTwoFactor`/`verifyTwoFactor`/`recoveryLogin` (unauthenticated, token-scoped) and
+  `getTwoFactorStatus`/`regenerateRecoveryCodes`/`startAuthenticatorReplacement`/`confirmAuthenticatorReplacement`
+  (authenticated, via `backendFetch`); new `two-factor-handoff.ts` module-level singleton for the short-lived
+  `twoFactorToken` (deliberately **not** a route param or persisted storage — see security notes below); reworked
+  `login.tsx` to branch into `(auth)/two-factor-setup` or `(auth)/two-factor-verify` instead of signing in
+  directly (biometric login path left untouched — it bypasses 2FA entirely since it's replaying an
+  already-2FA-verified cached session, not a new login); new `two-factor-verify.tsx` (code entry + "use a
+  recovery code instead" fallback); new reusable `totp-enrollment.tsx` (QR + shared key + code entry, shared
+  between initial setup and later authenticator replacement) and `recovery-codes-reveal.tsx` (masked-by-default,
+  tap-to-reveal, screenshot-blocked, explicit copy, requires an "I've saved these" acknowledgment before
+  continuing) components; new `two-factor-setup.tsx` orchestrating those two for first-time enrollment; new
+  `security-2fa.tsx` Settings screen (status, regenerate recovery codes, replace authenticator — both actions
+  biometric-gated via an extended `authenticateWithBiometrics(promptMessage)` in `biometric-session.ts` *in
+  addition to* the backend's own password/TOTP requirement, so an unlocked-but-walked-away phone can't reach
+  these screens even with a valid session); new "Two-factor authentication" row in `profile.tsx`; new routes
+  registered in `_layout.tsx`.
+- **Security posture, deliberately asked for and built in, not default**: the `twoFactorToken` only ever lives in
+  a plain in-memory JS variable (`two-factor-handoff.ts`), never a URL/route param or AsyncStorage/SecureStore —
+  avoids it surfacing in crash-reporter breadcrumbs or deep-link history. Recovery codes never leave the
+  component-local state of whichever screen generated them (enable/regenerate/replace-confirm) — no screen ever
+  routes them through a param either. Every 2FA screen transition uses `router.replace`, never `push`, so the
+  back button can't land on a stale setup/verify screen with a dead token. Considered and explicitly **declined**
+  this round: certificate pinning (real protection, but an app-wide networking change with real
+  cert-rotation operational risk, not a quick addition) and jailbreak/root detection (bypassable, needs a new
+  native dependency, real maintenance/false-positive cost) — both flagged to the user as separate future
+  decisions if ever wanted, not bundled into this pass.
+- **Verified the whole flow runs in the Expo **web** build with no rebuild needed** — unlike the Firebase work
+  three sessions ago, none of the four new libraries are actually native-only: `react-native-svg` and
+  `react-native-qrcode-svg` both have real web implementations, `expo-clipboard` uses `navigator.clipboard`, and
+  `expo-screen-capture` resolves to an empty `{}` stub on web whose calls throw `UnavailabilityError` —
+  but `recovery-codes-reveal.tsx` already wraps those calls in `.catch(() => {})`, so it just silently does
+  nothing on web rather than crashing (confirmed by reading the library's own source, not assumed). Confirmed by
+  reading `expo-screen-capture`'s actual `ExpoScreenCapture.web.ts` source before relying on this.
+- **Testing note — declined to directly touch the backend's database to unblock email confirmation**: a
+  freshly-registered throwaway test account couldn't log in (`EmailConfirmationSender` sends a real confirmation
+  email via real SMTP; the throwaway address obviously never received it). While investigating, found the local
+  backend's `dotnet user-secrets` resolves `ConnectionStrings:DefaultConnection` to a real Neon Postgres instance
+  (plus real SMTP, Blob Storage, and JWT-signing secrets in plaintext) — not a disposable local dev database.
+  Explicitly refused to connect and hand-flip `EmailConfirmed` via raw SQL, since that bypasses the application
+  layer entirely on a real credentialed resource; flagged the plaintext-secrets-in-a-shareable-file situation to
+  the user instead of acting on it. **Not rotated/addressed as of this entry** — same category of gap as the
+  2026-09-08 entry's Neon password exposure, worth checking whether that's still outstanding too.
+- **Actually verified end-to-end**: user switched to an already-confirmed real test account and ran the full
+  flow themselves in the web build — login → setup (QR scan equivalent) → recovery codes → dashboard; sign out →
+  log back in → verify (code entry, no setup step this time) → dashboard; Settings → regenerate recovery codes;
+  Settings → replace authenticator (password + code → new QR → new recovery codes). **All confirmed working** by
+  the user directly, not just typechecked.
+- **Two real bugs caught in review, before commit, from the user's own hand-typed edits** (same guided-coding
+  review pattern as every other session): `profile.tsx` ended up with the *entire* original "Edit profile /
+  Change password / Notifications" card duplicated right after itself instead of just the one new
+  "Two-factor authentication" row being inserted into the existing card — caught reading the diff, not by
+  running the app, same as the 2026-09-28 Windows entry's `tenants.tsx` double-invite bug. Separately, both
+  `two-factor-setup.tsx` and `two-factor-verify.tsx` called `setToken(pending)` synchronously inside their mount
+  `useEffect` — flagged by this project's ESLint (`react-hooks/set-state-in-effect`, set to `error`, not
+  `warning` — a convention this repo actively enforces). Real fix, not a suppression: neither screen actually
+  needed `token` in React state at all, since `two-factor-handoff.ts`'s `getPendingTwoFactorToken()` is already a
+  reliable read any time it's needed — removed the redundant state entirely.
+- **Next step**: EAS rebuild for both platforms (Android + iOS) to get the four new native dependencies into the
+  installed dev-client binaries — not started as of this entry. The web build only proves the JS logic and
+  screen flow are correct; the real on-device check (and the only place `expo-screen-capture`'s actual
+  screenshot-blocking does anything at all, since it's a no-op on web) still needs that rebuild.
+
 ## 2026-09-28 — Claude (Mac) got both dev-client builds actually working on-device, found the real root cause of the launch crash, and traced a tenant-notifications gap to the backend
 
 - **Picked up right where the 2026-09-28 (Windows) entry below left off**: both dev-client builds compiled

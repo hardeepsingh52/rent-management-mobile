@@ -3,10 +3,10 @@ import { login } from "@/lib/auth-api";
 import {
   authenticateWithBiometrics,
   getBiometricSession,
-  isBiometricAvailable,
-  saveBiometricSession,
+  isBiometricAvailable
 } from "@/lib/biometric-session";
 import { useSessionContext } from "@/lib/session-context";
+import { clearPendingTwoFactorToken, setPendingTwoFactorToken } from "@/lib/two-factor-handoff";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
@@ -46,29 +46,25 @@ export default function LoginScreen() {
   }, []);
 
   async function handleSubmit() {
-    setError(null);
-    setLoading(true);
-    try {
-      const user = await login(email, password);
-      await signIn(user);
-      try {
-        if (await isBiometricAvailable()) {
-          await saveBiometricSession(user);
-        }
-      } catch {
-        // Biometric caching is a nice-to-have; never block a successful login on it.
-      }
-      router.replace("/");
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong. Please try again.",
-      );
-    } finally {
-      setLoading(false);
-    }
+  setError(null);
+  setLoading(true);
+  try {
+    clearPendingTwoFactorToken();
+    const challenge = await login(email, password);
+    setPendingTwoFactorToken(challenge.twoFactorToken);
+    router.replace(
+      challenge.setupRequired ? "/(auth)/two-factor-setup" : "/(auth)/two-factor-verify",
+    );
+  } catch (err) {
+    setError(
+      err instanceof Error
+        ? err.message
+        : "Something went wrong. Please try again.",
+    );
+  } finally {
+    setLoading(false);
   }
+}
 
   async function handleBiometricLogin() {
     setError(null);

@@ -120,3 +120,23 @@ export interface NotificationItem {
   isRead: boolean;
   createdAt: string;
 }
+
+export interface TwoFactorChallenge {
+  setupRequired: boolean;
+  twoFactorToken: string;
+}
+
+export interface TwoFactorEnrollment {
+  sharedKey: string;
+  authenticatorUri: string;
+}
+
+export interface TwoFactorEnabled {
+  session: SessionUser;
+  recoveryCodes: string[];
+}
+
+export interface TwoFactorStatus {
+  enabled: boolean;
+  recoveryCodesRemaining: number;
+}

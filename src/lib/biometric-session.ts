@@ -27,9 +27,11 @@ export async function clearBiometricSession(): Promise<void> {
   await SecureStore.deleteItemAsync(BIOMETRIC_KEY);
 }
 
-export async function authenticateWithBiometrics(): Promise<boolean> {
+export async function authenticateWithBiometrics(
+  promptMessage = "Log in to DomusPRO",
+): Promise<boolean> {
   const result = await LocalAuthentication.authenticateAsync({
-    promptMessage: "Log in to DomusPRO",
+    promptMessage,
   });
   return result.success;
 }
