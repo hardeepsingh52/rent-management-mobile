@@ -1,22 +1,50 @@
+import { useScrollToField } from "@/lib/use-scroll-to-field";
+import { FieldError } from "@/components/field-error";
+import { FormField } from "@/components/form-field";
+import { useFormErrors } from "@/lib/use-form-errors";
+import { number, required, chosen } from "@/lib/validators";
+import { useQueryClient } from "@tanstack/react-query";
 import { Colors } from "@/constants/colors";
-import { archiveUnit, getProperty, updateUnit } from "@/lib/properties-api";
+import type { Unit, UnitType } from "@/lib/types";
+import { archiveUnit, updateUnit } from "@/lib/properties-api";
+import {
+  usePropertyQuery,
+  useUnitStatusesQuery,
+  useUnitTypesQuery,
+} from "@/lib/queries";
 import { useSession } from "@/lib/session-context";
-import type { UnitType } from "@/lib/types";
-import { getUnitStatuses } from "@/lib/unit-statuses-api";
-import { getUnitTypes } from "@/lib/unit-types-api";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
+
+type UnitField =
+  | "label"
+  | "unitType"
+  | "status"
+  | "bedrooms"
+  | "bathrooms"
+  | "squareFeet"
+  | "askingRent";
+
+const UNIT_SERVER_FIELDS: Record<UnitField, RegExp> = {
+  unitType: /unit ?type/i,
+  status: /status/i,
+  label: /label/i,
+  bedrooms: /bedroom/i,
+  bathrooms: /bathroom/i,
+  squareFeet: /square ?feet|sqft/i,
+  askingRent: /rent/i,
+};
 
 function unitTypeIcon(
   name: string,
@@ -44,71 +72,114 @@ function formatStatus(status: string): string {
 
 export default function EditUnitScreen() {
   const { id, unitId } = useLocalSearchParams<{ id: string; unitId: string }>();
+  const typesQuery = useUnitTypesQuery();
+  const statusesQuery = useUnitStatusesQuery();
+  const propertyQuery = usePropertyQuery(id);
+  const unit = propertyQuery.data?.units.find((u) => String(u.id) === unitId);
+  const loadError =
+    (typesQuery.error ?? statusesQuery.error ?? propertyQuery.error)?.message ??
+    (propertyQuery.data && !unit ? "Unit not found." : null);
+
+  if (loadError) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.error}>{loadError}</Text>
+      </View>
+    );
+  }
+
+  if (!typesQuery.data || !statusesQuery.data || !unit) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  return (
+    <EditUnitForm
+      id={id}
+      unitId={unitId}
+      unit={unit}
+      unitTypes={typesQuery.data}
+      statuses={statusesQuery.data}
+    />
+  );
+}
+
+// Rendered only once the data has loaded, so the form fields can start with the
+// saved values instead of being filled in by an effect.
+function EditUnitForm({
+  id,
+  unitId,
+  unit,
+  unitTypes,
+  statuses,
+}: {
+  id: string;
+  unitId: string;
+  unit: Unit;
+  unitTypes: UnitType[];
+  statuses: string[];
+}) {
   const router = useRouter();
   const user = useSession();
+  const queryClient = useQueryClient();
 
-  const [unitTypes, setUnitTypes] = useState<UnitType[] | null>(null);
-  const [statuses, setStatuses] = useState<string[] | null>(null);
-  const [unitTypeId, setUnitTypeId] = useState<number | null>(null);
-  const [status, setStatus] = useState<string | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [unitTypeId, setUnitTypeId] = useState<number | null>(
+    unitTypes.find((t) => t.name === unit.unitType)?.id ??
+      unitTypes[0]?.id ??
+      null,
+  );
+  const [status, setStatus] = useState<string | null>(unit.status);
 
-  const [label, setLabel] = useState("");
-  const [bedrooms, setBedrooms] = useState("");
-  const [bathrooms, setBathrooms] = useState("");
-  const [squareFeet, setSquareFeet] = useState("");
-  const [askingRent, setAskingRent] = useState("");
+  const [label, setLabel] = useState(unit.label);
+  const [bedrooms, setBedrooms] = useState(String(unit.bedrooms));
+  const [bathrooms, setBathrooms] = useState(String(unit.bathrooms));
+  const [squareFeet, setSquareFeet] = useState(String(unit.squareFeet));
+  const [askingRent, setAskingRent] = useState(String(unit.askingRent));
 
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [archiving, setArchiving] = useState(false);
 
-  useEffect(() => {
-    Promise.all([
-      getUnitTypes(user.token),
-      getUnitStatuses(user.token),
-      getProperty(id, user.token),
-    ])
-      .then(([types, statusList, property]) => {
-        const unit = property.units.find((u) => String(u.id) === unitId);
-        if (!unit) {
-          setLoadError("Unit not found.");
-          return;
-        }
-        setUnitTypes(types);
-        setStatuses(statusList);
-        setUnitTypeId(
-          types.find((t) => t.name === unit.unitType)?.id ??
-            types[0]?.id ??
-            null,
-        );
-        setStatus(unit.status);
-        setLabel(unit.label);
-        setBedrooms(String(unit.bedrooms));
-        setBathrooms(String(unit.bathrooms));
-        setSquareFeet(String(unit.squareFeet));
-        setAskingRent(String(unit.askingRent));
-      })
-      .catch((err) =>
-        setLoadError(
-          err instanceof Error ? err.message : "Failed to load unit.",
-        ),
-      );
-  }, [id, unitId, user.token]);
+  const { errors, setError, clearError, validate, applyServerErrors } =
+    useFormErrors<UnitField>();
+  const { scrollRef, register, scrollToField } = useScrollToField<UnitField>();
+
+  function check(field: UnitField): string | null {
+    switch (field) {
+      case "label":
+        return required(label, "Label");
+      case "unitType":
+        return chosen(unitTypeId, "unit type");
+      case "status":
+        return chosen(status, "status");
+      case "bedrooms":
+        return number(bedrooms, "Bedrooms", { integer: true });
+      case "bathrooms":
+        return number(bathrooms, "Bathrooms");
+      case "squareFeet":
+        return number(squareFeet, "Square feet", { min: 1 });
+      case "askingRent":
+        return number(askingRent, "Asking rent", { min: 1 });
+    }
+  }
 
   async function handleSubmit() {
-    if (
-      !label.trim() ||
-      !bedrooms.trim() ||
-      !bathrooms.trim() ||
-      !squareFeet.trim() ||
-      !askingRent.trim()
-    ) {
-      setSubmitError("Please fill in all required fields.");
-      return;
-    }
-    if (!unitTypeId || !status) {
-      setSubmitError("Please select a unit type and status.");
+    const valid = validate(
+      {
+        unitType: check("unitType"),
+        status: check("status"),
+        label: check("label"),
+        bedrooms: check("bedrooms"),
+        bathrooms: check("bathrooms"),
+        squareFeet: check("squareFeet"),
+        askingRent: check("askingRent"),
+      },
+      scrollToField,
+    );
+    if (!valid || unitTypeId === null || status === null) {
       return;
     }
 
@@ -128,10 +199,16 @@ export default function EditUnitScreen() {
         },
         user.token,
       );
+      queryClient.invalidateQueries({ queryKey: ["properties"] });
       router.back();
     } catch (err) {
       setSubmitError(
-        err instanceof Error ? err.message : "Failed to update unit.",
+        applyServerErrors(
+          err,
+          UNIT_SERVER_FIELDS,
+          "Failed to update unit.",
+          scrollToField,
+        ),
       );
     } finally {
       setSubmitting(false);
@@ -151,6 +228,7 @@ export default function EditUnitScreen() {
             setArchiving(true);
             try {
               await archiveUnit(unitId, user.token);
+              queryClient.invalidateQueries({ queryKey: ["properties"] });
               router.replace({ pathname: "/properties/[id]", params: { id } });
             } catch (err) {
               Alert.alert(
@@ -166,24 +244,12 @@ export default function EditUnitScreen() {
     );
   }
 
-  if (loadError) {
-    return (
-      <View style={styles.centered}>
-        <Text style={styles.error}>{loadError}</Text>
-      </View>
-    );
-  }
-
-  if (!unitTypes || !statuses) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator />
-      </View>
-    );
-  }
-
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      ref={scrollRef}
+      style={styles.container}
+      contentContainerStyle={styles.content}
+    >
       <View style={styles.header}>
         <Pressable style={styles.iconButton} onPress={() => router.back()}>
           <MaterialCommunityIcons
@@ -198,146 +264,161 @@ export default function EditUnitScreen() {
 
       {submitError && <Text style={styles.error}>{submitError}</Text>}
 
-      <Text style={styles.label}>Unit type</Text>
-      <View style={styles.typeGrid}>
-        {unitTypes.map((type) => {
-          const selected = unitTypeId === type.id;
-          return (
-            <Pressable
-              key={type.id}
-              style={[styles.typeCard, selected && styles.typeCardSelected]}
-              onPress={() => setUnitTypeId(type.id)}
-              disabled={submitting}
-            >
-              <MaterialCommunityIcons
-                name={unitTypeIcon(type.name)}
-                size={18}
-                color={selected ? Colors.accentOrange : Colors.textMuted}
-              />
-              <Text
-                style={[styles.typeText, selected && styles.typeTextSelected]}
+      <View ref={register("unitType")}>
+        <Text style={styles.label}>Unit type</Text>
+        <View style={styles.typeGrid}>
+          {unitTypes.map((type) => {
+            const selected = unitTypeId === type.id;
+            return (
+              <Pressable
+                key={type.id}
+                style={[styles.typeCard, selected && styles.typeCardSelected]}
+                onPress={() => {
+                  setUnitTypeId(type.id);
+                  clearError("unitType");
+                }}
+                disabled={submitting}
               >
-                {type.name}
-              </Text>
-            </Pressable>
-          );
-        })}
+                <MaterialCommunityIcons
+                  name={unitTypeIcon(type.name)}
+                  size={18}
+                  color={selected ? Colors.accentOrange : Colors.textMuted}
+                />
+                <Text
+                  style={[styles.typeText, selected && styles.typeTextSelected]}
+                >
+                  {type.name}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <FieldError message={errors.unitType} />
       </View>
 
-      <Text style={styles.label}>Status</Text>
-      <View style={styles.typeGrid}>
-        {statuses.map((s) => {
-          const selected = status === s;
-          return (
-            <Pressable
-              key={s}
-              style={[styles.typeCard, selected && styles.typeCardSelected]}
-              onPress={() => setStatus(s)}
-              disabled={submitting}
-            >
-              <MaterialCommunityIcons
-                name={statusIcon(s)}
-                size={18}
-                color={selected ? Colors.accentOrange : Colors.textMuted}
-              />
-              <Text
-                style={[styles.typeText, selected && styles.typeTextSelected]}
+      <View ref={register("status")}>
+        <Text style={styles.label}>Status</Text>
+        <View style={styles.typeGrid}>
+          {statuses.map((s) => {
+            const selected = status === s;
+            return (
+              <Pressable
+                key={s}
+                style={[styles.typeCard, selected && styles.typeCardSelected]}
+                onPress={() => {
+                  setStatus(s);
+                  clearError("status");
+                }}
+                disabled={submitting}
               >
-                {formatStatus(s)}
-              </Text>
-            </Pressable>
-          );
-        })}
+                <MaterialCommunityIcons
+                  name={statusIcon(s)}
+                  size={18}
+                  color={selected ? Colors.accentOrange : Colors.textMuted}
+                />
+                <Text
+                  style={[styles.typeText, selected && styles.typeTextSelected]}
+                >
+                  {formatStatus(s)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <FieldError message={errors.status} />
       </View>
 
-      <Text style={styles.label}>Label</Text>
-      <View style={styles.inputWrapper}>
-        <MaterialCommunityIcons
-          name="tag-outline"
-          size={18}
-          color={Colors.textMutedDark}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="e.g. 1A, 2B"
-          value={label}
-          onChangeText={setLabel}
-          editable={!submitting}
-        />
-      </View>
+      <FormField
+        label="Label"
+        icon="tag-outline"
+        error={errors.label}
+        fieldRef={register("label")}
+        placeholder="e.g. 1A, 2B"
+        editable={!submitting}
+        value={label}
+        onChangeText={(text) => {
+          setLabel(text);
+          clearError("label");
+        }}
+        onBlur={() => label.trim() && setError("label", check("label"))}
+      />
 
       <View style={styles.row}>
         <View style={styles.rowItem}>
-          <Text style={styles.label}>Bedrooms</Text>
-          <View style={styles.inputWrapper}>
-            <MaterialCommunityIcons
-              name="bed-outline"
-              size={18}
-              color={Colors.textMutedDark}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="2"
-              value={bedrooms}
-              onChangeText={setBedrooms}
-              keyboardType="numeric"
-              editable={!submitting}
-            />
-          </View>
+          <FormField
+            label="Bedrooms"
+            icon="bed-outline"
+            error={errors.bedrooms}
+            fieldRef={register("bedrooms")}
+            placeholder="2"
+            keyboardType="numeric"
+            editable={!submitting}
+            value={bedrooms}
+            onChangeText={(text) => {
+              setBedrooms(text);
+              clearError("bedrooms");
+            }}
+            onBlur={() =>
+              bedrooms.trim() && setError("bedrooms", check("bedrooms"))
+            }
+          />
         </View>
         <View style={styles.rowItem}>
-          <Text style={styles.label}>Bathrooms</Text>
-          <View style={styles.inputWrapper}>
-            <MaterialCommunityIcons
-              name="shower"
-              size={18}
-              color={Colors.textMutedDark}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="1"
-              value={bathrooms}
-              onChangeText={setBathrooms}
-              keyboardType="numeric"
-              editable={!submitting}
-            />
-          </View>
+          <FormField
+            label="Bathrooms"
+            icon="shower"
+            error={errors.bathrooms}
+            fieldRef={register("bathrooms")}
+            placeholder="1"
+            keyboardType="numeric"
+            editable={!submitting}
+            value={bathrooms}
+            onChangeText={(text) => {
+              setBathrooms(text);
+              clearError("bathrooms");
+            }}
+            onBlur={() =>
+              bathrooms.trim() && setError("bathrooms", check("bathrooms"))
+            }
+          />
         </View>
       </View>
 
-      <Text style={styles.label}>Square feet</Text>
-      <View style={styles.inputWrapper}>
-        <MaterialCommunityIcons
-          name="ruler-square"
-          size={18}
-          color={Colors.textMutedDark}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="850"
-          value={squareFeet}
-          onChangeText={setSquareFeet}
-          keyboardType="numeric"
-          editable={!submitting}
-        />
-      </View>
+      <FormField
+        label="Square feet"
+        icon="ruler-square"
+        error={errors.squareFeet}
+        fieldRef={register("squareFeet")}
+        placeholder="850"
+        keyboardType="numeric"
+        editable={!submitting}
+        value={squareFeet}
+        onChangeText={(text) => {
+          setSquareFeet(text);
+          clearError("squareFeet");
+        }}
+        onBlur={() =>
+          squareFeet.trim() && setError("squareFeet", check("squareFeet"))
+        }
+      />
 
-      <Text style={styles.label}>Asking rent (monthly)</Text>
-      <View style={styles.inputWrapper}>
-        <MaterialCommunityIcons
-          name="cash-multiple"
-          size={18}
-          color={Colors.textMutedDark}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="1500"
-          value={askingRent}
-          onChangeText={setAskingRent}
-          keyboardType="numeric"
-          editable={!submitting}
-        />
-      </View>
+      <FormField
+        label="Asking rent (monthly)"
+        icon="cash-multiple"
+        error={errors.askingRent}
+        fieldRef={register("askingRent")}
+        placeholder="1500"
+        keyboardType="numeric"
+        editable={!submitting}
+        value={askingRent}
+        onChangeText={(text) => {
+          setAskingRent(text);
+          clearError("askingRent");
+        }}
+        onBlur={() =>
+          askingRent.trim() && setError("askingRent", check("askingRent"))
+        }
+      />
 
       <View style={styles.actions}>
         <Pressable

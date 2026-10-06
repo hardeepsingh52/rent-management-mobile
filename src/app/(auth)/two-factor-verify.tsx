@@ -1,3 +1,4 @@
+import { exactDigits, required } from "@/lib/validators";
 import { Colors } from "@/constants/colors";
 import { recoveryLogin, verifyTwoFactor } from "@/lib/auth-api";
 import { isBiometricAvailable, saveBiometricSession } from "@/lib/biometric-session";
@@ -54,6 +55,14 @@ useEffect(() => {
   if (!token) {
     return;
   }
+  const problem =
+    mode === "code"
+      ? exactDigits(code, 6)
+      : required(recoveryCode, "Recovery code");
+  if (problem) {
+    setError(problem);
+    return;
+  }
   setError(null);
   setLoading(true);
   try {
@@ -106,7 +115,10 @@ useEffect(() => {
             <TextInput
               style={styles.codeInput}
               value={code}
-              onChangeText={setCode}
+              onChangeText={(text) => {
+                setCode(text);
+                setError(null);
+              }}
               keyboardType="number-pad"
               maxLength={6}
               autoFocus
@@ -117,7 +129,10 @@ useEffect(() => {
             <TextInput
               style={styles.input}
               value={recoveryCode}
-              onChangeText={setRecoveryCode}
+              onChangeText={(text) => {
+                setRecoveryCode(text);
+                setError(null);
+              }}
               autoCapitalize="none"
               autoCorrect={false}
               autoFocus

@@ -1,7 +1,12 @@
+import { FieldError, fieldErrorBorder } from "@/components/field-error";
 import { Colors } from "@/constants/colors";
-import { getMyProperties } from "@/lib/properties-api";
+import { usePropertiesQuery } from "@/lib/queries";
+import { useFormErrors } from "@/lib/use-form-errors";
+import { useScrollToField } from "@/lib/use-scroll-to-field";
+import { chosen, email as validateEmail } from "@/lib/validators";
 import { useSession } from "@/lib/session-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
@@ -22,12 +27,7 @@ import {
   resendTenantInvite,
 } from "@/lib/tenant-invite-api";
 
-import type {
-  Property,
-  TenantInviteListItem,
-  TenantInviteStats,
-  TenantInviteStatus,
-} from "@/lib/types";
+import type { TenantInviteListItem, TenantInviteStatus } from "@/lib/types";
 
 const STATUS_COLORS: Record<TenantInviteStatus, { bg: string; text: string }> =
   {
@@ -37,71 +37,90 @@ const STATUS_COLORS: Record<TenantInviteStatus, { bg: string; text: string }> =
     Expired: { bg: Colors.divider, text: Colors.textMuted },
   };
 
+type InviteField = "email" | "unit";
+
+const SERVER_FIELDS: Record<InviteField, RegExp> = {
+  email: /email/i,
+  unit: /unit/i,
+};
+
 export default function TenantsScreen() {
   const user = useSession();
   const router = useRouter();
 
-  const [properties, setProperties] = useState<Property[] | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const propertiesQuery = usePropertiesQuery();
+  const invitesQuery = useQuery({
+    queryKey: ["tenant-invites", user.id, "list"],
+    queryFn: () => getMyTenantInvites(user.token),
+    staleTime: 0,
+  });
+  const statsQuery = useQuery({
+    queryKey: ["tenant-invites", user.id, "stats"],
+    queryFn: () => getTenantInviteStats(user.token),
+    staleTime: 0,
+  });
+  const properties = propertiesQuery.data;
+  const invites = invitesQuery.data;
+  const stats = statsQuery.data;
+  const loadError =
+    (propertiesQuery.error ?? invitesQuery.error ?? statsQuery.error)
+      ?.message ?? null;
+  const { refetch: refetchInvites } = invitesQuery;
+  const { refetch: refetchStats } = statsQuery;
 
   const [email, setEmail] = useState("");
   const [unitId, setUnitId] = useState<number | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [sentEmail, setSentEmail] = useState<string | null>(null);
-  const [invites, setInvites] = useState<TenantInviteListItem[] | null>(null);
-  const [stats, setStats] = useState<TenantInviteStats | null>(null);
   const [resendingId, setResendingId] = useState<number | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      setLoadError(null);
-      const [data, inviteList, inviteStats] = await Promise.all([
-        getMyProperties(user.token),
-        getMyTenantInvites(user.token),
-        getTenantInviteStats(user.token),
-      ]);
-      setProperties(data);
-      setInvites(inviteList);
-      setStats(inviteStats);
-      setUnitId(
-        (current) => current ?? data.flatMap((p) => p.units)[0]?.id ?? null,
-      );
-    } catch (err) {
-      setLoadError(
-        err instanceof Error ? err.message : "Failed to load properties.",
-      );
-    }
-  }, [user.token]);
+  // Default to the first unit until the user picks one.
+  const selectedUnitId =
+    unitId ?? properties?.flatMap((p) => p.units)[0]?.id ?? null;
 
+  // Tab screens stay mounted, so refresh invites when the tab regains focus.
   useFocusEffect(
     useCallback(() => {
-      load();
-    }, [load]),
+      refetchInvites();
+      refetchStats();
+    }, [refetchInvites, refetchStats]),
   );
 
+  const { errors, setError, clearError, validate, applyServerErrors } =
+    useFormErrors<InviteField>();
+  const { scrollRef, register, scrollToField } =
+    useScrollToField<InviteField>();
+
   async function handleSubmit() {
-    if (!email.trim()) {
-      setSubmitError("Please enter the tenant's email.");
-      return;
-    }
-    if (!unitId) {
-      setSubmitError("Please select a unit.");
+    const valid = validate(
+      {
+        email: validateEmail(email),
+        unit: chosen(selectedUnitId, "unit"),
+      },
+      scrollToField,
+    );
+    if (!valid || selectedUnitId === null) {
       return;
     }
 
     setSubmitError(null);
     setSubmitting(true);
     try {
-      await createTenantInvite(email.trim(), unitId, user.token);
+      await createTenantInvite(email.trim(), selectedUnitId, user.token);
       setSentEmail(email.trim());
       setEmail("");
-      await load();
+      await queryClient.invalidateQueries({ queryKey: ["tenant-invites"] });
     } catch (err) {
       setSubmitError(
-        err instanceof Error
-          ? err.message
-          : "Couldn't send invite. Please try again.",
+        applyServerErrors(
+          err,
+          SERVER_FIELDS,
+          "Couldn't send invite. Please try again.",
+          scrollToField,
+        ),
       );
     } finally {
       setSubmitting(false);
@@ -114,7 +133,7 @@ export default function TenantsScreen() {
     try {
       await resendTenantInvite(invite.id, user.token);
       setSentEmail(invite.email);
-      await load();
+      await queryClient.invalidateQueries({ queryKey: ["tenant-invites"] });
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : "Couldn't resend invite.",
@@ -128,7 +147,7 @@ export default function TenantsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.content}>
         <Text style={styles.title}>Tenants</Text>
         <Text style={styles.subtitle}>
           Send an invite so a tenant can access their unit.
@@ -140,11 +159,11 @@ export default function TenantsScreen() {
         {submitError && <Text style={styles.error}>{submitError}</Text>}
         {loadError && <Text style={styles.error}>{loadError}</Text>}
 
-        {properties === null && !loadError && (
+        {propertiesQuery.isPending && !loadError && (
           <ActivityIndicator style={{ marginTop: 20 }} />
         )}
 
-        {properties !== null && !hasUnits && (
+        {properties && !hasUnits && (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyText}>
               Add a property and unit before inviting a tenant.
@@ -158,59 +177,76 @@ export default function TenantsScreen() {
           </View>
         )}
 
-        {properties !== null && hasUnits && (
+        {properties && hasUnits && (
           <View style={styles.card}>
-            <Text style={styles.label}>Tenant&apos;s email</Text>
-            <View style={styles.inputWrapper}>
-              <MaterialCommunityIcons
-                name="email-outline"
-                size={18}
-                color={Colors.textMutedDark}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="tenant@example.com"
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                editable={!submitting}
-              />
+            <View ref={register("email")}>
+              <Text style={styles.label}>Tenant&apos;s email</Text>
+              <View
+                style={[styles.inputWrapper, errors.email && fieldErrorBorder]}
+              >
+                <MaterialCommunityIcons
+                  name="email-outline"
+                  size={18}
+                  color={Colors.textMutedDark}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="tenant@example.com"
+                  value={email}
+                  onChangeText={(text) => {
+                    setEmail(text);
+                    clearError("email");
+                  }}
+                  onBlur={() =>
+                    email.trim() && setError("email", validateEmail(email))
+                  }
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  editable={!submitting}
+                />
+              </View>
+              <FieldError message={errors.email} />
             </View>
 
-            <Text style={styles.label}>Unit</Text>
-            {properties.map((property) =>
-              property.units.length > 0 ? (
-                <View key={property.id} style={styles.propertyGroup}>
-                  <Text style={styles.propertyName}>{property.name}</Text>
-                  <View style={styles.unitGrid}>
-                    {property.units.map((unit) => {
-                      const selected = unitId === unit.id;
-                      return (
-                        <Pressable
-                          key={unit.id}
-                          style={[
-                            styles.unitChip,
-                            selected && styles.unitChipSelected,
-                          ]}
-                          onPress={() => setUnitId(unit.id)}
-                          disabled={submitting}
-                        >
-                          <Text
+            <View ref={register("unit")}>
+              <Text style={styles.label}>Unit</Text>
+              {properties.map((property) =>
+                property.units.length > 0 ? (
+                  <View key={property.id} style={styles.propertyGroup}>
+                    <Text style={styles.propertyName}>{property.name}</Text>
+                    <View style={styles.unitGrid}>
+                      {property.units.map((unit) => {
+                        const selected = selectedUnitId === unit.id;
+                        return (
+                          <Pressable
+                            key={unit.id}
                             style={[
-                              styles.unitChipText,
-                              selected && styles.unitChipTextSelected,
+                              styles.unitChip,
+                              selected && styles.unitChipSelected,
                             ]}
+                            onPress={() => {
+                              setUnitId(unit.id);
+                              clearError("unit");
+                            }}
+                            disabled={submitting}
                           >
-                            {unit.label}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
+                            <Text
+                              style={[
+                                styles.unitChipText,
+                                selected && styles.unitChipTextSelected,
+                              ]}
+                            >
+                              {unit.label}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
                   </View>
-                </View>
-              ) : null,
-            )}
+                ) : null,
+              )}
+              <FieldError message={errors.unit} />
+            </View>
 
             <Pressable
               style={styles.submitButton}
@@ -261,7 +297,7 @@ export default function TenantsScreen() {
           </View>
         )}
 
-        {invites !== null && invites.length > 0 && (
+        {invites && invites.length > 0 && (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Sent invites</Text>
             {invites.map((invite) => {

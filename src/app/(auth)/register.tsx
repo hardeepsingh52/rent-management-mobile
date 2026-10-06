@@ -1,5 +1,14 @@
+import { FieldError, fieldErrorBorder } from "@/components/field-error";
 import { Colors } from "@/constants/colors";
 import { register } from "@/lib/auth-api";
+import { useFormErrors } from "@/lib/use-form-errors";
+import { useScrollToField } from "@/lib/use-scroll-to-field";
+import {
+  chosen,
+  email as validateEmail,
+  password as validatePassword,
+  required,
+} from "@/lib/validators";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { Link, useRouter } from "expo-router";
@@ -18,6 +27,16 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type UserType = "Landlord" | "Contractor";
+type Field = "fullName" | "email" | "password" | "userType";
+
+const SERVER_FIELDS: Partial<Record<Field, RegExp>> = {
+  email: /email|user ?name/i,
+  password: /password/i,
+  fullName: /full ?name/i,
+};
+
+// Pulls the error text up under its input, closing the input's bottom margin.
+const errorUnderInput = { marginTop: -12, marginBottom: 14 } as const;
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -31,13 +50,43 @@ export default function RegisterScreen() {
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
 
-  async function handleSubmit() {
-    if (!fullName.trim() || !email.trim() || !password) {
-      setError("Please fill in all fields.");
-      return;
+  const {
+    errors,
+    setError: setFieldError,
+    clearError,
+    validate,
+    applyServerErrors,
+  } = useFormErrors<Field>();
+  const {
+    scrollRef,
+    register: fieldRef,
+    scrollToField,
+  } = useScrollToField<Field>();
+
+  function check(field: Field): string | null {
+    switch (field) {
+      case "fullName":
+        return required(fullName, "Full name");
+      case "email":
+        return validateEmail(email);
+      case "password":
+        return validatePassword(password);
+      case "userType":
+        return chosen(userType, "role");
     }
-    if (!userType) {
-      setError("Please select whether you're a landlord or contractor.");
+  }
+
+  async function handleSubmit() {
+    const valid = validate(
+      {
+        fullName: check("fullName"),
+        email: check("email"),
+        password: check("password"),
+        userType: check("userType"),
+      },
+      scrollToField,
+    );
+    if (!valid || !userType) {
       return;
     }
 
@@ -53,9 +102,12 @@ export default function RegisterScreen() {
       router.replace({ pathname: "/login", params: { registered: "1" } });
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong. Please try again.",
+        applyServerErrors(
+          err,
+          SERVER_FIELDS,
+          "Something went wrong. Please try again.",
+          scrollToField,
+        ),
       );
     } finally {
       setLoading(false);
@@ -69,6 +121,7 @@ export default function RegisterScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
@@ -87,103 +140,159 @@ export default function RegisterScreen() {
 
           {error && <Text style={styles.error}>{error}</Text>}
 
-          <Text style={styles.label}>Full name</Text>
-          <View style={styles.inputWrapper}>
-            <MaterialCommunityIcons
-              name="account-outline"
-              size={18}
-              color={Colors.textMutedDark}
-            />
-            <TextInput
-              style={styles.input}
-              value={fullName}
-              onChangeText={setFullName}
-              autoCapitalize="words"
-              returnKeyType="next"
-              onSubmitEditing={() => emailRef.current?.focus()}
-              editable={!loading}
-              placeholder="Jane Smith"
-            />
-          </View>
-
-          <Text style={styles.label}>Email</Text>
-          <View style={styles.inputWrapper}>
-            <MaterialCommunityIcons
-              name="email-outline"
-              size={18}
-              color={Colors.textMutedDark}
-            />
-            <TextInput
-              ref={emailRef}
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              autoComplete="email"
-              textContentType="emailAddress"
-              returnKeyType="next"
-              onSubmitEditing={() => passwordRef.current?.focus()}
-              editable={!loading}
-              placeholder="name@company.com"
-            />
-          </View>
-
-          <Text style={styles.label}>Password</Text>
-          <View style={styles.inputWrapper}>
-            <MaterialCommunityIcons
-              name="lock-outline"
-              size={18}
-              color={Colors.textMutedDark}
-            />
-            <TextInput
-              ref={passwordRef}
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              autoComplete="password-new"
-              textContentType="newPassword"
-              returnKeyType="done"
-              onSubmitEditing={handleSubmit}
-              editable={!loading}
-            />
-            <Pressable onPress={() => setShowPassword((v) => !v)}>
+          <View ref={fieldRef("fullName")}>
+            <Text style={styles.label}>Full name</Text>
+            <View
+              style={[styles.inputWrapper, errors.fullName && fieldErrorBorder]}
+            >
               <MaterialCommunityIcons
-                name={showPassword ? "eye-off" : "eye"}
+                name="account-outline"
                 size={18}
                 color={Colors.textMutedDark}
               />
-            </Pressable>
+              <TextInput
+                style={styles.input}
+                value={fullName}
+                onChangeText={(text) => {
+                  setFullName(text);
+                  clearError("fullName");
+                }}
+                onBlur={() =>
+                  fullName.trim() &&
+                  setFieldError("fullName", check("fullName"))
+                }
+                autoCapitalize="words"
+                returnKeyType="next"
+                onSubmitEditing={() => emailRef.current?.focus()}
+                editable={!loading}
+                placeholder="Jane Smith"
+              />
+            </View>
+            <FieldError message={errors.fullName} style={errorUnderInput} />
           </View>
 
-          <Text style={styles.label}>I am a</Text>
-          <View style={styles.roleRow}>
-            {(["Landlord", "Contractor"] as const).map((type) => {
-              const selected = userType === type;
-              return (
-                <Pressable
-                  key={type}
-                  style={[styles.roleCard, selected && styles.roleCardSelected]}
-                  onPress={() => setUserType(type)}
-                  disabled={loading}
-                >
-                  <MaterialCommunityIcons
-                    name={type === "Landlord" ? "home-account" : "hammer-wrench"}
-                    size={18}
-                    color={selected ? Colors.accentOrange : Colors.textMuted}
-                  />
-                  <Text
-                    style={[styles.roleText, selected && styles.roleTextSelected]}
+          <View ref={fieldRef("email")}>
+            <Text style={styles.label}>Email</Text>
+            <View
+              style={[styles.inputWrapper, errors.email && fieldErrorBorder]}
+            >
+              <MaterialCommunityIcons
+                name="email-outline"
+                size={18}
+                color={Colors.textMutedDark}
+              />
+              <TextInput
+                ref={emailRef}
+                style={styles.input}
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  clearError("email");
+                }}
+                onBlur={() =>
+                  email.trim() && setFieldError("email", check("email"))
+                }
+                autoCapitalize="none"
+                keyboardType="email-address"
+                autoComplete="email"
+                textContentType="emailAddress"
+                returnKeyType="next"
+                onSubmitEditing={() => passwordRef.current?.focus()}
+                editable={!loading}
+                placeholder="name@company.com"
+              />
+            </View>
+            <FieldError message={errors.email} style={errorUnderInput} />
+          </View>
+
+          <View ref={fieldRef("password")}>
+            <Text style={styles.label}>Password</Text>
+            <View
+              style={[styles.inputWrapper, errors.password && fieldErrorBorder]}
+            >
+              <MaterialCommunityIcons
+                name="lock-outline"
+                size={18}
+                color={Colors.textMutedDark}
+              />
+              <TextInput
+                ref={passwordRef}
+                style={styles.input}
+                value={password}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  clearError("password");
+                }}
+                onBlur={() =>
+                  password.trim() &&
+                  setFieldError("password", check("password"))
+                }
+                secureTextEntry={!showPassword}
+                autoComplete="password-new"
+                textContentType="newPassword"
+                returnKeyType="done"
+                onSubmitEditing={handleSubmit}
+                editable={!loading}
+              />
+              <Pressable onPress={() => setShowPassword((v) => !v)}>
+                <MaterialCommunityIcons
+                  name={showPassword ? "eye-off" : "eye"}
+                  size={18}
+                  color={Colors.textMutedDark}
+                />
+              </Pressable>
+            </View>
+            <FieldError message={errors.password} style={errorUnderInput} />
+          </View>
+
+          <View ref={fieldRef("userType")}>
+            <Text style={styles.label}>I am a</Text>
+            <View style={styles.roleRow}>
+              {(["Landlord", "Contractor"] as const).map((type) => {
+                const selected = userType === type;
+                return (
+                  <Pressable
+                    key={type}
+                    style={[
+                      styles.roleCard,
+                      selected && styles.roleCardSelected,
+                    ]}
+                    onPress={() => {
+                      setUserType(type);
+                      clearError("userType");
+                    }}
+                    disabled={loading}
                   >
-                    {type}
-                  </Text>
-                </Pressable>
-              );
-            })}
+                    <MaterialCommunityIcons
+                      name={
+                        type === "Landlord" ? "home-account" : "hammer-wrench"
+                      }
+                      size={18}
+                      color={selected ? Colors.accentOrange : Colors.textMuted}
+                    />
+                    <Text
+                      style={[
+                        styles.roleText,
+                        selected && styles.roleTextSelected,
+                      ]}
+                    >
+                      {type}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <FieldError
+              message={errors.userType}
+              style={{ marginTop: -14, marginBottom: 14 }}
+            />
           </View>
 
-          <Pressable style={styles.button} onPress={handleSubmit} disabled={loading}>
+          <Pressable
+            style={styles.button}
+            onPress={handleSubmit}
+            disabled={loading}
+          >
             {loading ? (
               <ActivityIndicator color={Colors.white} />
             ) : (

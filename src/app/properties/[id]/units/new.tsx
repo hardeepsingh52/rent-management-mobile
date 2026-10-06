@@ -1,4 +1,10 @@
-import { useEffect, useState } from "react";
+import { useScrollToField } from "@/lib/use-scroll-to-field";
+import { FieldError } from "@/components/field-error";
+import { FormField } from "@/components/form-field";
+import { useFormErrors } from "@/lib/use-form-errors";
+import { number, required, chosen } from "@/lib/validators";
+import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ActivityIndicator,
@@ -6,20 +12,33 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Colors } from "@/constants/colors";
 import { useSession } from "@/lib/session-context";
-import { getUnitTypes } from "@/lib/unit-types-api";
+import { useUnitTypesQuery } from "@/lib/queries";
 import { createUnit } from "@/lib/properties-api";
-import type { UnitType } from "@/lib/types";
 
-function unitTypeIcon(name: string): keyof typeof MaterialCommunityIcons.glyphMap {
+type UnitField =
+  "label" | "unitType" | "bedrooms" | "bathrooms" | "squareFeet" | "askingRent";
+
+const UNIT_SERVER_FIELDS: Record<Exclude<UnitField, "status">, RegExp> = {
+  unitType: /unit ?type/i,
+  label: /label/i,
+  bedrooms: /bedroom/i,
+  bathrooms: /bathroom/i,
+  squareFeet: /square ?feet|sqft/i,
+  askingRent: /rent/i,
+};
+
+function unitTypeIcon(
+  name: string,
+): keyof typeof MaterialCommunityIcons.glyphMap {
   const type = name.toLowerCase();
   if (type.includes("studio")) return "home-outline";
-  if (type.includes("house") || type.includes("full")) return "home-city-outline";
+  if (type.includes("house") || type.includes("full"))
+    return "home-city-outline";
   return "door-open";
 }
 
@@ -27,10 +46,14 @@ export default function NewUnitScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const user = useSession();
+  const queryClient = useQueryClient();
 
-  const [unitTypes, setUnitTypes] = useState<UnitType[] | null>(null);
-  const [unitTypeId, setUnitTypeId] = useState<number | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const typesQuery = useUnitTypesQuery();
+  const unitTypes = typesQuery.data;
+  const loadError = typesQuery.error?.message ?? null;
+  const [pickedTypeId, setPickedTypeId] = useState<number | null>(null);
+  // Default to the first type until the user picks one.
+  const unitTypeId = pickedTypeId ?? unitTypes?.[0]?.id ?? null;
 
   const [label, setLabel] = useState("");
   const [bedrooms, setBedrooms] = useState("");
@@ -41,32 +64,40 @@ export default function NewUnitScreen() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    getUnitTypes(user.token)
-      .then((types) => {
-        setUnitTypes(types);
-        setUnitTypeId(types[0]?.id ?? null);
-      })
-      .catch((err) =>
-        setLoadError(
-          err instanceof Error ? err.message : "Failed to load unit types.",
-        ),
-      );
-  }, [user.token]);
+  const { errors, setError, clearError, validate, applyServerErrors } =
+    useFormErrors<UnitField>();
+  const { scrollRef, register, scrollToField } = useScrollToField<UnitField>();
+
+  function check(field: UnitField): string | null {
+    switch (field) {
+      case "label":
+        return required(label, "Label");
+      case "unitType":
+        return chosen(unitTypeId, "unit type");
+      case "bedrooms":
+        return number(bedrooms, "Bedrooms", { integer: true });
+      case "bathrooms":
+        return number(bathrooms, "Bathrooms");
+      case "squareFeet":
+        return number(squareFeet, "Square feet", { min: 1 });
+      case "askingRent":
+        return number(askingRent, "Asking rent", { min: 1 });
+    }
+  }
 
   async function handleSubmit() {
-    if (
-      !label.trim() ||
-      !bedrooms.trim() ||
-      !bathrooms.trim() ||
-      !squareFeet.trim() ||
-      !askingRent.trim()
-    ) {
-      setSubmitError("Please fill in all required fields.");
-      return;
-    }
-    if (!unitTypeId) {
-      setSubmitError("Please select a unit type.");
+    const valid = validate(
+      {
+        unitType: check("unitType"),
+        label: check("label"),
+        bedrooms: check("bedrooms"),
+        bathrooms: check("bathrooms"),
+        squareFeet: check("squareFeet"),
+        askingRent: check("askingRent"),
+      },
+      scrollToField,
+    );
+    if (!valid || unitTypeId === null) {
       return;
     }
 
@@ -85,10 +116,16 @@ export default function NewUnitScreen() {
         },
         user.token,
       );
+      queryClient.invalidateQueries({ queryKey: ["properties"] });
       router.back();
     } catch (err) {
       setSubmitError(
-        err instanceof Error ? err.message : "Failed to add unit.",
+        applyServerErrors(
+          err,
+          UNIT_SERVER_FIELDS,
+          "Failed to add unit.",
+          scrollToField,
+        ),
       );
     } finally {
       setSubmitting(false);
@@ -112,7 +149,11 @@ export default function NewUnitScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      ref={scrollRef}
+      style={styles.container}
+      contentContainerStyle={styles.content}
+    >
       <View style={styles.header}>
         <Pressable style={styles.iconButton} onPress={() => router.back()}>
           <MaterialCommunityIcons
@@ -129,100 +170,129 @@ export default function NewUnitScreen() {
 
       {submitError && <Text style={styles.error}>{submitError}</Text>}
 
-      <Text style={styles.label}>Unit type</Text>
-      <View style={styles.typeGrid}>
-        {unitTypes.map((type) => {
-          const selected = unitTypeId === type.id;
-          return (
-            <Pressable
-              key={type.id}
-              style={[styles.typeCard, selected && styles.typeCardSelected]}
-              onPress={() => setUnitTypeId(type.id)}
-              disabled={submitting}
-            >
-              <MaterialCommunityIcons
-                name={unitTypeIcon(type.name)}
-                size={18}
-                color={selected ? Colors.accentOrange : Colors.textMuted}
-              />
-              <Text
-                style={[styles.typeText, selected && styles.typeTextSelected]}
+      <View ref={register("unitType")}>
+        <Text style={styles.label}>Unit type</Text>
+        <View style={styles.typeGrid}>
+          {unitTypes.map((type) => {
+            const selected = unitTypeId === type.id;
+            return (
+              <Pressable
+                key={type.id}
+                style={[styles.typeCard, selected && styles.typeCardSelected]}
+                onPress={() => {
+                  setPickedTypeId(type.id);
+                  clearError("unitType");
+                }}
+                disabled={submitting}
               >
-                {type.name}
-              </Text>
-            </Pressable>
-          );
-        })}
+                <MaterialCommunityIcons
+                  name={unitTypeIcon(type.name)}
+                  size={18}
+                  color={selected ? Colors.accentOrange : Colors.textMuted}
+                />
+                <Text
+                  style={[styles.typeText, selected && styles.typeTextSelected]}
+                >
+                  {type.name}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <FieldError message={errors.unitType} />
       </View>
 
-      <Text style={styles.label}>Label</Text>
-      <View style={styles.inputWrapper}>
-        <MaterialCommunityIcons name="tag-outline" size={18} color={Colors.textMutedDark} />
-        <TextInput
-          style={styles.input}
-          placeholder="e.g. 1A, 2B"
-          value={label}
-          onChangeText={setLabel}
-          editable={!submitting}
-        />
-      </View>
+      <FormField
+        label="Label"
+        icon="tag-outline"
+        error={errors.label}
+        fieldRef={register("label")}
+        placeholder="e.g. 1A, 2B"
+        editable={!submitting}
+        value={label}
+        onChangeText={(text) => {
+          setLabel(text);
+          clearError("label");
+        }}
+        onBlur={() => label.trim() && setError("label", check("label"))}
+      />
 
       <View style={styles.row}>
         <View style={styles.rowItem}>
-          <Text style={styles.label}>Bedrooms</Text>
-          <View style={styles.inputWrapper}>
-            <MaterialCommunityIcons name="bed-outline" size={18} color={Colors.textMutedDark} />
-            <TextInput
-              style={styles.input}
-              placeholder="2"
-              value={bedrooms}
-              onChangeText={setBedrooms}
-              keyboardType="numeric"
-              editable={!submitting}
-            />
-          </View>
+          <FormField
+            label="Bedrooms"
+            icon="bed-outline"
+            error={errors.bedrooms}
+            fieldRef={register("bedrooms")}
+            placeholder="2"
+            keyboardType="numeric"
+            editable={!submitting}
+            value={bedrooms}
+            onChangeText={(text) => {
+              setBedrooms(text);
+              clearError("bedrooms");
+            }}
+            onBlur={() =>
+              bedrooms.trim() && setError("bedrooms", check("bedrooms"))
+            }
+          />
         </View>
         <View style={styles.rowItem}>
-          <Text style={styles.label}>Bathrooms</Text>
-          <View style={styles.inputWrapper}>
-            <MaterialCommunityIcons name="shower" size={18} color={Colors.textMutedDark} />
-            <TextInput
-              style={styles.input}
-              placeholder="1"
-              value={bathrooms}
-              onChangeText={setBathrooms}
-              keyboardType="numeric"
-              editable={!submitting}
-            />
-          </View>
+          <FormField
+            label="Bathrooms"
+            icon="shower"
+            error={errors.bathrooms}
+            fieldRef={register("bathrooms")}
+            placeholder="1"
+            keyboardType="numeric"
+            editable={!submitting}
+            value={bathrooms}
+            onChangeText={(text) => {
+              setBathrooms(text);
+              clearError("bathrooms");
+            }}
+            onBlur={() =>
+              bathrooms.trim() && setError("bathrooms", check("bathrooms"))
+            }
+          />
         </View>
       </View>
 
-      <Text style={styles.label}>Square feet</Text>
-      <View style={styles.inputWrapper}>
-        <MaterialCommunityIcons name="ruler-square" size={18} color={Colors.textMutedDark} />
-        <TextInput
-          style={styles.input}
-          placeholder="850"
-          value={squareFeet}
-          onChangeText={setSquareFeet}
-          keyboardType="numeric"
-          editable={!submitting}
-        />
-      </View>
+      <FormField
+        label="Square feet"
+        icon="ruler-square"
+        error={errors.squareFeet}
+        fieldRef={register("squareFeet")}
+        placeholder="850"
+        keyboardType="numeric"
+        editable={!submitting}
+        value={squareFeet}
+        onChangeText={(text) => {
+          setSquareFeet(text);
+          clearError("squareFeet");
+        }}
+        onBlur={() =>
+          squareFeet.trim() && setError("squareFeet", check("squareFeet"))
+        }
+      />
 
-      <Text style={styles.label}>Asking rent (monthly)</Text>
-      <View style={styles.inputWrapper}>
-        <MaterialCommunityIcons name="cash-multiple" size={18} color={Colors.textMutedDark} />
-        <TextInput
-          style={styles.input}
-          placeholder="1500"
-          value={askingRent}
-          onChangeText={setAskingRent}
-          keyboardType="numeric"
-          editable={!submitting}
-        />
-      </View>
+      <FormField
+        label="Asking rent (monthly)"
+        icon="cash-multiple"
+        error={errors.askingRent}
+        fieldRef={register("askingRent")}
+        placeholder="1500"
+        keyboardType="numeric"
+        editable={!submitting}
+        value={askingRent}
+        onChangeText={(text) => {
+          setAskingRent(text);
+          clearError("askingRent");
+        }}
+        onBlur={() =>
+          askingRent.trim() && setError("askingRent", check("askingRent"))
+        }
+      />
 
       <View style={styles.actions}>
         <Pressable
@@ -297,7 +367,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 14,
   },
-  input: { flex: 1, paddingVertical: 13, fontSize: 14, color: Colors.primaryDark },
+  input: {
+    flex: 1,
+    paddingVertical: 13,
+    fontSize: 14,
+    color: Colors.primaryDark,
+  },
   typeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   typeCard: {
     flexDirection: "row",
@@ -326,7 +401,11 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     alignItems: "center",
   },
-  cancelButtonText: { fontSize: 14, fontWeight: "600", color: Colors.primaryDark },
+  cancelButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: Colors.primaryDark,
+  },
   submitButton: {
     flex: 1,
     backgroundColor: Colors.accentOrange,

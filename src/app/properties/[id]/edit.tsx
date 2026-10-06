@@ -1,25 +1,41 @@
+import { useScrollToField } from "@/lib/use-scroll-to-field";
+import { FieldError } from "@/components/field-error";
+import { FormField } from "@/components/form-field";
+import { useFormErrors } from "@/lib/use-form-errors";
+import { canadianPostalCode, required, chosen } from "@/lib/validators";
+import { useQueryClient } from "@tanstack/react-query";
 import { Colors } from "@/constants/colors";
-import {
-    archiveProperty,
-    getProperty,
-    updateProperty,
-} from "@/lib/properties-api";
-import { getPropertyTypes } from "@/lib/property-types-api";
+import type { Property, PropertyType } from "@/lib/types";
+import { archiveProperty, updateProperty } from "@/lib/properties-api";
+import { usePropertyQuery, usePropertyTypesQuery } from "@/lib/queries";
 import { useSession } from "@/lib/session-context";
-import type { PropertyType } from "@/lib/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
+
+type PropertyField =
+  "name" | "propertyType" | "line1" | "city" | "region" | "postalCode";
+
+const PROPERTY_SERVER_FIELDS: Record<
+  Exclude<PropertyField, "propertyType">,
+  RegExp
+> = {
+  name: /(property )?name/i,
+  line1: /line ?1|address/i,
+  city: /city/i,
+  region: /province|region/i,
+  postalCode: /postal/i,
+};
 
 function propertyTypeIcon(
   name: string,
@@ -44,62 +60,102 @@ function formatPropertyType(type: string): string {
 
 export default function EditPropertyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const typesQuery = usePropertyTypesQuery();
+  const propertyQuery = usePropertyQuery(id);
+  const loadError = (typesQuery.error ?? propertyQuery.error)?.message ?? null;
+
+  if (loadError) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.error}>{loadError}</Text>
+      </View>
+    );
+  }
+
+  if (!typesQuery.data || !propertyQuery.data) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  return (
+    <EditPropertyForm
+      id={id}
+      property={propertyQuery.data}
+      propertyTypes={typesQuery.data}
+    />
+  );
+}
+
+// Rendered only once the data has loaded, so the form fields can start with the
+// saved values instead of being filled in by an effect.
+function EditPropertyForm({
+  id,
+  property,
+  propertyTypes,
+}: {
+  id: string;
+  property: Property;
+  propertyTypes: PropertyType[];
+}) {
   const router = useRouter();
   const user = useSession();
+  const queryClient = useQueryClient();
 
-  const [propertyTypes, setPropertyTypes] = useState<PropertyType[] | null>(
-    null,
+  const [propertyTypeId, setPropertyTypeId] = useState<number | null>(
+    propertyTypes.find((t) => t.name === property.propertyType)?.id ??
+      propertyTypes[0]?.id ??
+      null,
   );
-  const [propertyTypeId, setPropertyTypeId] = useState<number | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [name, setName] = useState("");
-  const [line1, setLine1] = useState("");
-  const [line2, setLine2] = useState("");
-  const [city, setCity] = useState("");
-  const [region, setRegion] = useState("");
-  const [postalCode, setPostalCode] = useState("");
+  const [name, setName] = useState(property.name);
+  const [line1, setLine1] = useState(property.line1);
+  const [line2, setLine2] = useState(property.line2 ?? "");
+  const [city, setCity] = useState(property.city);
+  const [region, setRegion] = useState(property.region);
+  const [postalCode, setPostalCode] = useState(property.postalCode);
 
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [archiving, setArchiving] = useState(false);
 
-  useEffect(() => {
-    Promise.all([getPropertyTypes(user.token), getProperty(id, user.token)])
-      .then(([types, property]) => {
-        setPropertyTypes(types);
-        setPropertyTypeId(
-          types.find((t) => t.name === property.propertyType)?.id ??
-            types[0]?.id ??
-            null,
-        );
-        setName(property.name);
-        setLine1(property.line1);
-        setLine2(property.line2 ?? "");
-        setCity(property.city);
-        setRegion(property.region);
-        setPostalCode(property.postalCode);
-      })
-      .catch((err) =>
-        setLoadError(
-          err instanceof Error ? err.message : "Failed to load property.",
-        ),
-      );
-  }, [id, user.token]);
+  const { errors, setError, clearError, validate, applyServerErrors } =
+    useFormErrors<PropertyField>();
+  const { scrollRef, register, scrollToField } =
+    useScrollToField<PropertyField>();
+
+  function check(field: PropertyField): string | null {
+    switch (field) {
+      case "name":
+        return required(name, "Property name");
+      case "propertyType":
+        return chosen(propertyTypeId, "property type");
+      case "line1":
+        return required(line1, "Address line 1");
+      case "city":
+        return required(city, "City");
+      case "region":
+        return required(region, "Province");
+      case "postalCode":
+        return canadianPostalCode(postalCode);
+    }
+  }
 
   async function handleSubmit() {
-    if (
-      !name.trim() ||
-      !line1.trim() ||
-      !city.trim() ||
-      !region.trim() ||
-      !postalCode.trim()
-    ) {
-      setSubmitError("Please fill in all required fields.");
-      return;
-    }
-    if (!propertyTypeId) {
-      setSubmitError("Please select a property type.");
+    const valid = validate(
+      {
+        name: check("name"),
+        propertyType: check("propertyType"),
+        line1: check("line1"),
+        city: check("city"),
+        region: check("region"),
+        postalCode: check("postalCode"),
+      },
+      scrollToField,
+    );
+    if (!valid || propertyTypeId === null) {
       return;
     }
 
@@ -120,10 +176,16 @@ export default function EditPropertyScreen() {
         },
         user.token,
       );
+      queryClient.invalidateQueries({ queryKey: ["properties"] });
       router.back();
     } catch (err) {
       setSubmitError(
-        err instanceof Error ? err.message : "Failed to update property.",
+        applyServerErrors(
+          err,
+          PROPERTY_SERVER_FIELDS,
+          "Failed to update property.",
+          scrollToField,
+        ),
       );
     } finally {
       setSubmitting(false);
@@ -143,6 +205,7 @@ export default function EditPropertyScreen() {
             setArchiving(true);
             try {
               await archiveProperty(id, user.token);
+              queryClient.invalidateQueries({ queryKey: ["properties"] });
               router.replace("/(tabs)/properties");
             } catch (err) {
               Alert.alert(
@@ -158,24 +221,12 @@ export default function EditPropertyScreen() {
     );
   }
 
-  if (loadError) {
-    return (
-      <View style={styles.centered}>
-        <Text style={styles.error}>{loadError}</Text>
-      </View>
-    );
-  }
-
-  if (!propertyTypes) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator />
-      </View>
-    );
-  }
-
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      ref={scrollRef}
+      style={styles.container}
+      contentContainerStyle={styles.content}
+    >
       <View style={styles.header}>
         <Pressable style={styles.iconButton} onPress={() => router.back()}>
           <MaterialCommunityIcons
@@ -190,134 +241,130 @@ export default function EditPropertyScreen() {
 
       {submitError && <Text style={styles.error}>{submitError}</Text>}
 
-      <Text style={styles.label}>Property name</Text>
-      <View style={styles.inputWrapper}>
-        <MaterialCommunityIcons
-          name="office-building"
-          size={18}
-          color={Colors.textMutedDark}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Maple Street Duplex"
-          value={name}
-          onChangeText={setName}
-          editable={!submitting}
-        />
-      </View>
+      <FormField
+        label="Property name"
+        icon="office-building"
+        error={errors.name}
+        fieldRef={register("name")}
+        placeholder="Maple Street Duplex"
+        editable={!submitting}
+        value={name}
+        onChangeText={(text) => {
+          setName(text);
+          clearError("name");
+        }}
+        onBlur={() => name.trim() && setError("name", check("name"))}
+      />
 
-      <Text style={styles.label}>Property type</Text>
-      <View style={styles.typeGrid}>
-        {propertyTypes.map((type) => {
-          const selected = propertyTypeId === type.id;
-          return (
-            <Pressable
-              key={type.id}
-              style={[styles.typeCard, selected && styles.typeCardSelected]}
-              onPress={() => setPropertyTypeId(type.id)}
-              disabled={submitting}
-            >
-              <MaterialCommunityIcons
-                name={propertyTypeIcon(type.name)}
-                size={18}
-                color={selected ? Colors.accentOrange : Colors.textMuted}
-              />
-              <Text
-                style={[styles.typeText, selected && styles.typeTextSelected]}
+      <View ref={register("propertyType")}>
+        <Text style={styles.label}>Property type</Text>
+        <View style={styles.typeGrid}>
+          {propertyTypes.map((type) => {
+            const selected = propertyTypeId === type.id;
+            return (
+              <Pressable
+                key={type.id}
+                style={[styles.typeCard, selected && styles.typeCardSelected]}
+                onPress={() => {
+                  setPropertyTypeId(type.id);
+                  clearError("propertyType");
+                }}
+                disabled={submitting}
               >
-                {formatPropertyType(type.name)}
-              </Text>
-            </Pressable>
-          );
-        })}
+                <MaterialCommunityIcons
+                  name={propertyTypeIcon(type.name)}
+                  size={18}
+                  color={selected ? Colors.accentOrange : Colors.textMuted}
+                />
+                <Text
+                  style={[styles.typeText, selected && styles.typeTextSelected]}
+                >
+                  {formatPropertyType(type.name)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <FieldError message={errors.propertyType} />
       </View>
 
-      <Text style={styles.label}>Address line 1</Text>
-      <View style={styles.inputWrapper}>
-        <MaterialCommunityIcons
-          name="map-marker-outline"
-          size={18}
-          color={Colors.textMutedDark}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="123 Maple St"
-          value={line1}
-          onChangeText={setLine1}
-          editable={!submitting}
-        />
-      </View>
+      <FormField
+        label="Address line 1"
+        icon="map-marker-outline"
+        error={errors.line1}
+        fieldRef={register("line1")}
+        placeholder="123 Maple St"
+        editable={!submitting}
+        value={line1}
+        onChangeText={(text) => {
+          setLine1(text);
+          clearError("line1");
+        }}
+        onBlur={() => line1.trim() && setError("line1", check("line1"))}
+      />
 
-      <Text style={styles.label}>Address line 2 (optional)</Text>
-      <View style={styles.inputWrapper}>
-        <MaterialCommunityIcons
-          name="door"
-          size={18}
-          color={Colors.textMutedDark}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Unit, suite, etc. (optional)"
-          value={line2}
-          onChangeText={setLine2}
-          editable={!submitting}
-        />
+      <FormField
+        label="Address line 2 (optional)"
+        icon="door"
+        placeholder="Unit, suite, etc. (optional)"
+        editable={!submitting}
+        value={line2}
+        onChangeText={setLine2}
+      />
+
+      <View style={styles.row}>
+        <View style={styles.rowItem}>
+          <FormField
+            label="City"
+            icon="city-variant-outline"
+            error={errors.city}
+            fieldRef={register("city")}
+            placeholder="Toronto"
+            editable={!submitting}
+            value={city}
+            onChangeText={(text) => {
+              setCity(text);
+              clearError("city");
+            }}
+            onBlur={() => city.trim() && setError("city", check("city"))}
+          />
+        </View>
+        <View style={styles.rowItem}>
+          <FormField
+            label="Province"
+            icon="map-outline"
+            error={errors.region}
+            fieldRef={register("region")}
+            placeholder="ON"
+            editable={!submitting}
+            value={region}
+            onChangeText={(text) => {
+              setRegion(text);
+              clearError("region");
+            }}
+            onBlur={() => region.trim() && setError("region", check("region"))}
+          />
+        </View>
       </View>
 
       <View style={styles.row}>
         <View style={styles.rowItem}>
-          <Text style={styles.label}>City</Text>
-          <View style={styles.inputWrapper}>
-            <MaterialCommunityIcons
-              name="city-variant-outline"
-              size={18}
-              color={Colors.textMutedDark}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Toronto"
-              value={city}
-              onChangeText={setCity}
-              editable={!submitting}
-            />
-          </View>
-        </View>
-        <View style={styles.rowItem}>
-          <Text style={styles.label}>Province</Text>
-          <View style={styles.inputWrapper}>
-            <MaterialCommunityIcons
-              name="map-outline"
-              size={18}
-              color={Colors.textMutedDark}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="ON"
-              value={region}
-              onChangeText={setRegion}
-              editable={!submitting}
-            />
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.row}>
-        <View style={styles.rowItem}>
-          <Text style={styles.label}>Postal code</Text>
-          <View style={styles.inputWrapper}>
-            <MaterialCommunityIcons
-              name="email-outline"
-              size={18}
-              color={Colors.textMutedDark}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="M5V 2T6"
-              value={postalCode}
-              onChangeText={setPostalCode}
-              editable={!submitting}
-            />
-          </View>
+          <FormField
+            label="Postal code"
+            icon="email-outline"
+            error={errors.postalCode}
+            fieldRef={register("postalCode")}
+            placeholder="M5V 2T6"
+            editable={!submitting}
+            value={postalCode}
+            onChangeText={(text) => {
+              setPostalCode(text);
+              clearError("postalCode");
+            }}
+            onBlur={() =>
+              postalCode.trim() && setError("postalCode", check("postalCode"))
+            }
+          />
         </View>
         <View style={styles.rowItem}>
           <Text style={styles.label}>Country</Text>
