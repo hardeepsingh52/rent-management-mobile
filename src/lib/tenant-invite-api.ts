@@ -1,5 +1,5 @@
 import { backendFetch } from "./api-client";
-import { extractErrorMessage } from "./api-error";
+import { extractApiError } from "./api-error";
 
 import type {
   CreateTenantInviteResult,
@@ -17,7 +17,7 @@ export async function createTenantInvite(
     body: JSON.stringify({ Email: email, UnitId: unitId }),
   });
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
   return response.json();
 }
@@ -27,7 +27,7 @@ export async function getMyTenantInvites(
 ): Promise<TenantInviteListItem[]> {
   const response = await backendFetch("/auth/tenant-invites", token);
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
   return response.json();
 }
@@ -37,7 +37,7 @@ export async function getTenantInviteStats(
 ): Promise<TenantInviteStats> {
   const response = await backendFetch("/auth/tenant-invites/stats", token);
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
   return response.json();
 }
@@ -54,7 +54,7 @@ export async function resendTenantInvite(
     },
   );
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
   return response.json();
 }

@@ -1,5 +1,5 @@
 import { API_BASE_URL, backendFetch, InvalidRefreshTokenError } from "./api-client";
-import { extractErrorMessage } from "./api-error";
+import { extractApiError } from "./api-error";
 import type {
   RegisterUserInput,
   SessionUser,
@@ -52,7 +52,7 @@ export async function login(
   });
 
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
 
   return toTwoFactorChallenge(await response.json());
@@ -68,7 +68,7 @@ export async function beginTwoFactorSetup(
   });
 
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
 
   return toTwoFactorEnrollment(await response.json());
@@ -85,7 +85,7 @@ export async function enableTwoFactor(
   });
 
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
 
   return toTwoFactorEnabled(await response.json());
@@ -102,7 +102,7 @@ export async function verifyTwoFactor(
   });
 
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
 
   return toSessionUser(await response.json());
@@ -122,7 +122,7 @@ export async function recoveryLogin(
   });
 
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
 
   return toSessionUser(await response.json());
@@ -133,7 +133,7 @@ export async function getTwoFactorStatus(
 ): Promise<TwoFactorStatus> {
   const response = await backendFetch("/auth/2fa/status", token);
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
   const data = await response.json();
   return { enabled: data.enabled, recoveryCodesRemaining: data.recoveryCodesRemaining };
@@ -149,7 +149,7 @@ export async function regenerateRecoveryCodes(
     { method: "POST", body: JSON.stringify({ Code: code }) },
   );
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
   const data = await response.json();
   return data.recoveryCodes;
@@ -169,7 +169,7 @@ export async function startAuthenticatorReplacement(
     }),
   });
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
   return toTwoFactorEnrollment(await response.json());
 }
@@ -183,7 +183,7 @@ export async function confirmAuthenticatorReplacement(
     body: JSON.stringify({ Code: code }),
   });
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
   return toTwoFactorEnabled(await response.json());
 }
@@ -201,7 +201,7 @@ export async function register(input: RegisterUserInput): Promise<void> {
   });
 
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
 }
 
@@ -242,6 +242,6 @@ export async function forgotPassword(email: string): Promise<void> {
   });
 
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
 }

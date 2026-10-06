@@ -1,5 +1,5 @@
 import { backendFetch } from "./api-client";
-import { extractErrorMessage } from "./api-error";
+import { extractApiError } from "./api-error";
 import type { NotificationItem } from "./types";
 
 export async function getMyNotifications(
@@ -11,7 +11,7 @@ export async function getMyNotifications(
     token,
   );
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
   return response.json();
 }
@@ -21,7 +21,7 @@ export async function getUnreadNotificationCount(
 ): Promise<number> {
   const response = await backendFetch("/notifications/unread-count", token);
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
   const data = await response.json();
   return data.count;
@@ -35,7 +35,7 @@ export async function markNotificationRead(
     method: "POST",
   });
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
 }
 
@@ -49,6 +49,6 @@ export async function registerDeviceToken(
     body: JSON.stringify({ Token: deviceToken, Platform: platform }),
   });
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
 }

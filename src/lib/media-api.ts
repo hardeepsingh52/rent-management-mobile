@@ -1,7 +1,7 @@
 import { File } from "expo-file-system";
 import { Platform } from "react-native";
 import { backendFetch } from "./api-client";
-import { extractErrorMessage } from "./api-error";
+import { extractApiError } from "./api-error";
 import type { MediaItem } from "./types";
 
 const EXTENSION_BY_MIME_TYPE: Record<string, string> = {
@@ -19,7 +19,7 @@ interface PickedPhoto {
 async function getMedia(basePath: string, token: string): Promise<MediaItem[]> {
   const response = await backendFetch(`${basePath}/media`, token);
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
   return response.json();
 }
@@ -42,7 +42,7 @@ async function uploadOnePhoto(
     },
   );
   if (!uploadUrlResponse.ok) {
-    throw new Error(await extractErrorMessage(uploadUrlResponse));
+    throw await extractApiError(uploadUrlResponse);
   }
   const { blobPath, uploadUrl } = await uploadUrlResponse.json();
 
@@ -83,7 +83,7 @@ async function uploadOnePhoto(
     body: JSON.stringify({ blobPath, sortOrder }),
   });
   if (!addResponse.ok) {
-    throw new Error(await extractErrorMessage(addResponse));
+    throw await extractApiError(addResponse);
   }
 }
 
@@ -150,7 +150,7 @@ export async function setPropertyMediaCover(
     },
   );
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
 }
 
@@ -168,6 +168,6 @@ export async function deletePropertyMedia(
     },
   );
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
 }

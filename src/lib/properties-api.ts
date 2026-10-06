@@ -1,5 +1,5 @@
 import { backendFetch } from "./api-client";
-import { extractErrorMessage } from "./api-error";
+import { extractApiError } from "./api-error";
 import type {
   CreatePropertyInput,
   CreateUnitInput,
@@ -10,7 +10,7 @@ import type {
 export async function getMyProperties(token: string): Promise<Property[]> {
   const response = await backendFetch("/properties/mine", token);
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
   return response.json();
 }
@@ -21,7 +21,7 @@ export async function getProperty(
 ): Promise<Property> {
   const response = await backendFetch(`/properties/${id}`, token);
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
   return response.json();
 }
@@ -35,7 +35,7 @@ export async function createProperty(
     body: JSON.stringify(input),
   });
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
 }
 
@@ -53,7 +53,7 @@ export async function createUnit(
     },
   );
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
 }
 
@@ -67,7 +67,7 @@ export async function updateProperty(
     body: JSON.stringify(input),
   });
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
 }
 
@@ -79,7 +79,7 @@ export async function archiveProperty(
     method: "POST",
   });
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
 }
 
@@ -93,7 +93,7 @@ export async function updateUnit(
     body: JSON.stringify(input),
   });
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
 }
 
@@ -109,6 +109,6 @@ export async function archiveUnit(
     },
   );
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    throw await extractApiError(response);
   }
 }
