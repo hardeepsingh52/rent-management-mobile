@@ -1,12 +1,10 @@
 import { Colors } from "@/constants/colors";
-import {
-  getMyNotifications,
-  markNotificationRead,
-} from "@/lib/notifications-api";
+import { markNotificationRead } from "@/lib/notifications-api";
+import { useNotificationsQuery } from "@/lib/queries";
 import { useSession } from "@/lib/session-context";
 import type { NotificationItem } from "@/lib/types";
-import { useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import {
   FlatList,
   Pressable,
@@ -23,25 +21,13 @@ function formatDate(iso: string): string {
 
 export default function NotificationsScreen() {
   const user = useSession();
-  const [notifications, setNotifications] = useState<
-    NotificationItem[] | null
-  >(null);
+  const queryClient = useQueryClient();
+  const { data: notifications, refetch } = useNotificationsQuery();
   const [refreshing, setRefreshing] = useState(false);
-
-  const load = useCallback(async () => {
-    const data = await getMyNotifications(user.token);
-    setNotifications(data);
-  }, [user.token]);
-
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
 
   async function onRefresh() {
     setRefreshing(true);
-    await load();
+    await refetch();
     setRefreshing(false);
   }
 
@@ -49,12 +35,14 @@ export default function NotificationsScreen() {
     if (item.isRead) {
       return;
     }
-    setNotifications(
+    queryClient.setQueryData<NotificationItem[]>(
+      ["notifications", "list", user.id],
       (current) =>
-        current?.map((n) => (n.id === item.id ? { ...n, isRead: true } : n)) ??
-        null,
+        current?.map((n) => (n.id === item.id ? { ...n, isRead: true } : n)),
     );
     await markNotificationRead(item.id, user.token);
+    // Refresh the unread count shown on the Home bell.
+    queryClient.invalidateQueries({ queryKey: ["notifications"] });
   }
 
   return (
@@ -67,7 +55,7 @@ export default function NotificationsScreen() {
         }
         contentContainerStyle={styles.list}
         ListEmptyComponent={
-          notifications !== null ? (
+          notifications ? (
             <Text style={styles.emptyText}>No notifications yet.</Text>
           ) : null
         }

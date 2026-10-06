@@ -3,7 +3,9 @@ import {
   registerForPushNotifications,
   subscribeToTokenRefresh,
 } from "@/lib/push-notifications";
+import { queryClient } from "@/lib/query-client";
 import { SessionProvider, useSessionContext } from "@/lib/session-context";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
@@ -12,9 +14,11 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   return (
-    <SessionProvider>
-      <RootNavigation />
-    </SessionProvider>
+    <QueryClientProvider client={queryClient}>
+      <SessionProvider>
+        <RootNavigation />
+      </SessionProvider>
+    </QueryClientProvider>
   );
 }
 

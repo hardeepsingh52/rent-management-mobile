@@ -1,11 +1,9 @@
 import { Colors } from "@/constants/colors";
-import { getMyProperties } from "@/lib/properties-api";
-import { useSession } from "@/lib/session-context";
-import type { Property } from "@/lib/types";
+import { usePropertiesQuery } from "@/lib/queries";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useRouter } from "expo-router";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -27,29 +25,10 @@ function formatPropertyType(type: string): string {
 }
 
 export default function PropertiesScreen() {
-  const user = useSession();
   const router = useRouter();
-  const [properties, setProperties] = useState<Property[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
-  const load = useCallback(async () => {
-    try {
-      setError(null);
-      const data = await getMyProperties(user.token);
-      setProperties(data);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load properties.",
-      );
-    }
-  }, [user.token]);
-
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
+  const { data: properties, error, isPending } = usePropertiesQuery();
 
   const query = search.trim().toLowerCase();
   const filtered = (properties ?? []).filter(
@@ -89,7 +68,7 @@ export default function PropertiesScreen() {
               Every property in your portfolio.
             </Text>
 
-            {properties !== null && properties.length > 0 && (
+            {properties && properties.length > 0 && (
               <View style={styles.statsRow}>
                 <View style={styles.statTile}>
                   <MaterialCommunityIcons
@@ -121,7 +100,7 @@ export default function PropertiesScreen() {
               </View>
             )}
 
-            {properties !== null && properties.length > 0 && (
+            {properties && properties.length > 0 && (
               <View style={styles.searchRow}>
                 <View style={styles.search}>
                   <MaterialCommunityIcons
@@ -150,14 +129,14 @@ export default function PropertiesScreen() {
               </View>
             )}
 
-            {error && <Text style={styles.error}>{error}</Text>}
-            {properties === null && !error && (
+            {error && <Text style={styles.error}>{error.message}</Text>}
+            {isPending && (
               <ActivityIndicator style={{ marginTop: 20 }} />
             )}
-            {properties !== null && properties.length === 0 && (
+            {properties && properties.length === 0 && (
               <Text style={styles.empty}>No properties added yet.</Text>
             )}
-            {properties !== null &&
+            {properties &&
               properties.length > 0 &&
               filtered.length === 0 && (
                 <Text style={styles.empty}>
@@ -230,7 +209,7 @@ export default function PropertiesScreen() {
           </Pressable>
         )}
         ListFooterComponent={
-          properties !== null && properties.length > 0 ? (
+          properties && properties.length > 0 ? (
             <Pressable
               style={styles.addButton}
               onPress={() => router.push("/properties/new")}

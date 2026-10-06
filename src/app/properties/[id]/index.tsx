@@ -2,18 +2,18 @@ import { PhotoCarousel } from "@/components/photo-carousel";
 import { Colors } from "@/constants/colors";
 import {
   deletePropertyMedia,
-  getPropertyMedia,
   setPropertyMediaCover,
   uploadPropertyPhotos,
 } from "@/lib/media-api";
 
-import { getProperty } from "@/lib/properties-api";
+import { usePropertyMediaQuery, usePropertyQuery } from "@/lib/queries";
 import { useSession } from "@/lib/session-context";
-import type { MediaItem, Property, Unit } from "@/lib/types";
+import type { Property, Unit } from "@/lib/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -48,26 +48,18 @@ export default function PropertyDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const user = useSession();
   const router = useRouter();
-  const [property, setProperty] = useState<Property | null>(null);
-  const [photos, setPhotos] = useState<MediaItem[]>([]);
+  const queryClient = useQueryClient();
+  const propertyQuery = usePropertyQuery(id);
+  const mediaQuery = usePropertyMediaQuery(id);
+  const property = propertyQuery.data;
+  const photos = mediaQuery.data ?? [];
+  const error = (propertyQuery.error ?? mediaQuery.error)?.message ?? null;
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [settingCover, setSettingCover] = useState(false);
   const [deletingPhoto, setDeletingPhoto] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      setError(null);
-      const [data, media] = await Promise.all([
-        getProperty(id, user.token),
-        getPropertyMedia(id, user.token),
-      ]);
-      setProperty(data);
-      setPhotos(media);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load property.");
-    }
-  }, [id, user.token]);
+  const refreshPhotos = () =>
+    queryClient.invalidateQueries({ queryKey: ["media", user.id, "property", id] });
 
   async function handleAddPhoto() {
     if (photos.length >= MAX_PROPERTY_PHOTOS) {
@@ -101,7 +93,7 @@ export default function PropertyDetailScreen() {
     setUploadingPhoto(true);
     try {
       await uploadPropertyPhotos(id, result.assets, photos.length, user.token);
-      setPhotos(await getPropertyMedia(id, user.token));
+      await refreshPhotos();
     } catch (err) {
       Alert.alert(
         "Upload failed",
@@ -116,7 +108,7 @@ export default function PropertyDetailScreen() {
     setSettingCover(true);
     try {
       await setPropertyMediaCover(id, mediaId, user.token);
-      setPhotos(await getPropertyMedia(id, user.token));
+      await refreshPhotos();
     } catch (err) {
       Alert.alert(
         "Couldn't set cover photo",
@@ -126,12 +118,6 @@ export default function PropertyDetailScreen() {
       setSettingCover(false);
     }
   }
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
-
   if (error) {
     return (
       <View style={styles.centered}>
@@ -158,7 +144,7 @@ export default function PropertyDetailScreen() {
           setDeletingPhoto(true);
           try {
             await deletePropertyMedia(id, mediaId, user.token);
-            setPhotos(await getPropertyMedia(id, user.token));
+            await refreshPhotos();
           } catch (err) {
             Alert.alert(
               "Couldn't delete photo",

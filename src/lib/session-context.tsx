@@ -13,6 +13,7 @@ import {
   isBiometricAvailable,
   saveBiometricSession,
 } from "./biometric-session";
+import { queryClient } from "./query-client";
 import { clearSession, getSession, saveSession } from "./session";
 import type { SessionUser } from "./types";
 
@@ -54,6 +55,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (reason === "expired" && Platform.OS !== "web") {
       await clearBiometricSession();
     }
+    queryClient.clear();
     setUser(null);
   }
 

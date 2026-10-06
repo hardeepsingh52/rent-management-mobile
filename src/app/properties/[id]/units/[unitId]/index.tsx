@@ -1,14 +1,14 @@
 import { PhotoStrip } from "@/components/photo-strip";
 import { PhotoViewerModal } from "@/components/photo-viewer-modal";
 import { Colors } from "@/constants/colors";
-import { getUnitMedia, uploadUnitPhotos } from "@/lib/media-api";
-import { getProperty } from "@/lib/properties-api";
+import { uploadUnitPhotos } from "@/lib/media-api";
+import { usePropertyQuery, useUnitMediaQuery } from "@/lib/queries";
 import { useSession } from "@/lib/session-context";
-import type { MediaItem, Unit } from "@/lib/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -38,30 +38,16 @@ export default function UnitDetailScreen() {
   const { id, unitId } = useLocalSearchParams<{ id: string; unitId: string }>();
   const user = useSession();
   const router = useRouter();
-  const [unit, setUnit] = useState<Unit | null>(null);
-  const [photos, setPhotos] = useState<MediaItem[]>([]);
+  const queryClient = useQueryClient();
+  const propertyQuery = usePropertyQuery(id);
+  const mediaQuery = useUnitMediaQuery(unitId);
+  const unit = propertyQuery.data?.units.find((u) => String(u.id) === unitId);
+  const photos = mediaQuery.data ?? [];
+  const error =
+    (propertyQuery.error ?? mediaQuery.error)?.message ??
+    (propertyQuery.data && !unit ? "Unit not found." : null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
-
-  const load = useCallback(async () => {
-    try {
-      setError(null);
-      const [property, media] = await Promise.all([
-        getProperty(id, user.token),
-        getUnitMedia(unitId, user.token),
-      ]);
-      const match = property.units.find((u) => String(u.id) === unitId);
-      if (!match) {
-        setError("Unit not found.");
-        return;
-      }
-      setUnit(match);
-      setPhotos(media);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load unit.");
-    }
-  }, [id, unitId, user.token]);
 
   async function handleAddPhoto() {
     if (photos.length >= MAX_UNIT_PHOTOS) {
@@ -95,7 +81,9 @@ export default function UnitDetailScreen() {
     setUploadingPhoto(true);
     try {
       await uploadUnitPhotos(unitId, result.assets, photos.length, user.token);
-      setPhotos(await getUnitMedia(unitId, user.token));
+      await queryClient.invalidateQueries({
+        queryKey: ["media", user.id, "unit", unitId],
+      });
     } catch (err) {
       Alert.alert(
         "Upload failed",
@@ -105,12 +93,6 @@ export default function UnitDetailScreen() {
       setUploadingPhoto(false);
     }
   }
-
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
 
   if (error) {
     return (

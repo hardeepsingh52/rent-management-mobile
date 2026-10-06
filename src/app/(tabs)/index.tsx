@@ -1,9 +1,7 @@
 import { SideMenu } from "@/components/side-menu";
 import { Colors } from "@/constants/colors";
-import { getUnreadNotificationCount } from "@/lib/notifications-api";
-import { getMyProperties } from "@/lib/properties-api";
+import { usePropertiesQuery, useUnreadCountQuery } from "@/lib/queries";
 import { useSession, useSessionContext } from "@/lib/session-context";
-import type { Property } from "@/lib/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -84,43 +82,33 @@ function RentPeriodRow({
 export default function DashboardScreen() {
   const user = useSession();
   const router = useRouter();
-  const [properties, setProperties] = useState<Property[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const { signOut } = useSessionContext();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
+
+  const {
+    data: properties,
+    error,
+    isPending,
+    refetch: refetchProperties,
+  } = usePropertiesQuery();
+  const { data: unreadData, refetch: refetchUnread } = useUnreadCountQuery();
+  const unreadCount = unreadData ?? 0;
 
   async function handleSignOut() {
     setMenuOpen(false);
     await signOut();
     router.replace("/(auth)/login");
   }
-  const load = useCallback(async () => {
-    try {
-      setError(null);
-      const [data, count] = await Promise.all([
-        getMyProperties(user.token),
-        getUnreadNotificationCount(user.token),
-      ]);
-      setProperties(data);
-      setUnreadCount(count);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load properties.",
-      );
-    }
-  }, [user.token]);
-
   useFocusEffect(
     useCallback(() => {
-      load();
-    }, [load]),
+      refetchUnread();
+    }, [refetchUnread]),
   );
 
   async function onRefresh() {
     setRefreshing(true);
-    await load();
+    await Promise.all([refetchProperties(), refetchUnread()]);
     setRefreshing(false);
   }
 
@@ -328,11 +316,11 @@ export default function DashboardScreen() {
               </Pressable>
             </View>
 
-            {error && <Text style={styles.error}>{error}</Text>}
-            {properties === null && !error && (
+            {error && <Text style={styles.error}>{error.message}</Text>}
+            {isPending && (
               <ActivityIndicator style={{ marginTop: 20 }} />
             )}
-            {properties !== null && properties.length === 0 && (
+            {properties && properties.length === 0 && (
               <Text style={styles.empty}>No properties added yet.</Text>
             )}
           </View>
