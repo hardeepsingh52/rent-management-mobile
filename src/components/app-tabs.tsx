@@ -11,16 +11,18 @@ import {
   TabTriggerSlotProps,
 } from "expo-router/ui";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function AppTabs() {
   const { role } = useSession();
   const isTenant = role === "Tenant";
+  const insets = useSafeAreaInsets();
   return (
     <Tabs>
       <TabSlot
         style={{
           flex: 1,
-          paddingBottom: 90,
+          paddingBottom: 90 + insets.bottom,
           backgroundColor: Colors.background,
         }}
       />
@@ -78,8 +80,9 @@ function FloatingTabBar({
   ...props
 }: TabListProps & { showFab: boolean }) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   return (
-    <View {...props} style={styles.island}>
+    <View {...props} style={[styles.island, { bottom: 18 + insets.bottom }]}>
       {children}
       {showFab && (
         <Pressable
