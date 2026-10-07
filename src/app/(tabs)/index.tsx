@@ -1,4 +1,5 @@
 import { SideMenu } from "@/components/side-menu";
+import { TenantDashboard } from "@/components/tenant-dashboard";
 import { Colors } from "@/constants/colors";
 import { usePropertiesQuery, useUnreadCountQuery } from "@/lib/queries";
 import { useSession, useSessionContext } from "@/lib/session-context";
@@ -80,6 +81,11 @@ function RentPeriodRow({
 }
 
 export default function DashboardScreen() {
+  const user = useSession();
+  return user.role === "Tenant" ? <TenantDashboard /> : <LandlordDashboard />;
+}
+
+function LandlordDashboard() {
   const user = useSession();
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);

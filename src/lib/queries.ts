@@ -7,6 +7,7 @@ import {
 import { getMyProperties, getProperty } from "./properties-api";
 import { getPropertyTypes } from "./property-types-api";
 import { useSession } from "./session-context";
+import { getMyTenancies } from "./tenant-api";
 import { getUnitStatuses } from "./unit-statuses-api";
 import { getUnitTypes } from "./unit-types-api";
 
@@ -21,6 +22,14 @@ export function usePropertiesQuery() {
   return useQuery({
     queryKey: ["properties", user.id],
     queryFn: () => getMyProperties(user.token),
+  });
+}
+
+export function useMyTenanciesQuery() {
+  const user = useSession();
+  return useQuery({
+    queryKey: ["tenancies", user.id],
+    queryFn: () => getMyTenancies(user.token),
   });
 }
 

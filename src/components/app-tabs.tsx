@@ -1,5 +1,6 @@
 import { Colors } from "@/constants/colors";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useSession } from "@/lib/session-context";
 import { useRouter } from "expo-router";
 import {
   TabList,
@@ -12,6 +13,8 @@ import {
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function AppTabs() {
+  const { role } = useSession();
+  const isTenant = role === "Tenant";
   return (
     <Tabs>
       <TabSlot
@@ -22,17 +25,21 @@ export default function AppTabs() {
         }}
       />
       <TabList asChild>
-        <FloatingTabBar>
+        <FloatingTabBar showFab={!isTenant}>
           <TabTrigger name="dashboard" href="/" asChild>
             <TabButton icon="view-dashboard" label="Dashboard" />
           </TabTrigger>
-          <TabTrigger name="properties" href="/(tabs)/properties" asChild>
-            <TabButton icon="office-building" label="Properties" />
-          </TabTrigger>
-          <View style={styles.fabSpacer} />
-          <TabTrigger name="tenants" href="/(tabs)/tenants" asChild>
-            <TabButton icon="account-group" label="Tenants" />
-          </TabTrigger>
+          {!isTenant && (
+            <>
+              <TabTrigger name="properties" href="/(tabs)/properties" asChild>
+                <TabButton icon="office-building" label="Properties" />
+              </TabTrigger>
+              <View style={styles.fabSpacer} />
+              <TabTrigger name="tenants" href="/(tabs)/tenants" asChild>
+                <TabButton icon="account-group" label="Tenants" />
+              </TabTrigger>
+            </>
+          )}
           <TabTrigger name="profile" href="/(tabs)/profile" asChild>
             <TabButton icon="account-circle" label="Profile" />
           </TabTrigger>
@@ -65,17 +72,23 @@ function TabButton({
   );
 }
 
-function FloatingTabBar({ children, ...props }: TabListProps) {
+function FloatingTabBar({
+  children,
+  showFab,
+  ...props
+}: TabListProps & { showFab: boolean }) {
   const router = useRouter();
   return (
     <View {...props} style={styles.island}>
       {children}
-      <Pressable
-        style={styles.fab}
-        onPress={() => router.push("/properties/new")}
-      >
-        <MaterialCommunityIcons name="plus" size={20} color={Colors.white} />
-      </Pressable>
+      {showFab && (
+        <Pressable
+          style={styles.fab}
+          onPress={() => router.push("/properties/new")}
+        >
+          <MaterialCommunityIcons name="plus" size={20} color={Colors.white} />
+        </Pressable>
+      )}
     </View>
   );
 }

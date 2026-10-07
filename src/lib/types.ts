@@ -140,3 +140,32 @@ export interface TwoFactorStatus {
   enabled: boolean;
   recoveryCodesRemaining: number;
 }
+
+export interface TenantTenancy {
+  tenancyId: number;
+  status: "Active" | "Ended";
+  startDate: string;
+  endDate: string | null;
+  unit: {
+    unitId: number;
+    label: string;
+    bedrooms: number | null;
+    bathrooms: number | null;
+    squareFeet: number | null;
+    rent: number | null;
+  };
+  property: {
+    propertyId: number;
+    name: string;
+    line1: string;
+    line2: string | null;
+    city: string;
+    region: string;
+    postalCode: string;
+  };
+  landlord: {
+    name: string;
+    businessName: string | null;
+    email: string | null;
+  } | null;
+}
