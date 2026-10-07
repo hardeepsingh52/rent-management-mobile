@@ -29,6 +29,8 @@ import {
 
 import type { TenantInviteListItem, TenantInviteStatus } from "@/lib/types";
 
+const INVITES_PER_PAGE = 5;
+
 const STATUS_COLORS: Record<TenantInviteStatus, { bg: string; text: string }> =
   {
     Pending: { bg: Colors.orangeTint, text: Colors.accentOrange },
@@ -76,6 +78,18 @@ export default function TenantsScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [sentEmail, setSentEmail] = useState<string | null>(null);
   const [resendingId, setResendingId] = useState<number | null>(null);
+  const [invitePage, setInvitePage] = useState(1);
+
+  const totalInvitePages = Math.max(
+    1,
+    Math.ceil((invites?.length ?? 0) / INVITES_PER_PAGE),
+  );
+  // Clamp in case the list shrinks (e.g. after a refetch) while on a later page.
+  const currentInvitePage = Math.min(invitePage, totalInvitePages);
+  const pagedInvites = invites?.slice(
+    (currentInvitePage - 1) * INVITES_PER_PAGE,
+    currentInvitePage * INVITES_PER_PAGE,
+  );
 
   // Default to the first unit until the user picks one.
   const selectedUnitId =
@@ -300,7 +314,7 @@ export default function TenantsScreen() {
         {invites && invites.length > 0 && (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Sent invites</Text>
-            {invites.map((invite) => {
+            {pagedInvites?.map((invite) => {
               const canResend =
                 invite.status === "Pending" || invite.status === "Expired";
               return (
@@ -348,6 +362,49 @@ export default function TenantsScreen() {
                 </View>
               );
             })}
+            {totalInvitePages > 1 && (
+              <View style={styles.pagination}>
+                <Pressable
+                  style={[
+                    styles.pageButton,
+                    currentInvitePage === 1 && styles.pageButtonDisabled,
+                  ]}
+                  onPress={() => setInvitePage(currentInvitePage - 1)}
+                  disabled={currentInvitePage === 1}
+                >
+                  <Text
+                    style={[
+                      styles.pageButtonText,
+                      currentInvitePage === 1 && styles.pageButtonTextDisabled,
+                    ]}
+                  >
+                    Previous
+                  </Text>
+                </Pressable>
+                <Text style={styles.pageInfo}>
+                  Page {currentInvitePage} of {totalInvitePages}
+                </Text>
+                <Pressable
+                  style={[
+                    styles.pageButton,
+                    currentInvitePage === totalInvitePages &&
+                      styles.pageButtonDisabled,
+                  ]}
+                  onPress={() => setInvitePage(currentInvitePage + 1)}
+                  disabled={currentInvitePage === totalInvitePages}
+                >
+                  <Text
+                    style={[
+                      styles.pageButtonText,
+                      currentInvitePage === totalInvitePages &&
+                        styles.pageButtonTextDisabled,
+                    ]}
+                  >
+                    Next
+                  </Text>
+                </Pressable>
+              </View>
+            )}
           </View>
         )}
       </ScrollView>
@@ -492,4 +549,27 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   badgeText: { fontSize: 10, fontWeight: "700" },
+  pagination: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: Colors.background,
+  },
+  pageButton: {
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: Colors.accentTeal,
+  },
+  pageButtonDisabled: { backgroundColor: Colors.background },
+  pageButtonText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: Colors.white,
+  },
+  pageButtonTextDisabled: { color: Colors.borderLighter },
+  pageInfo: { fontSize: 12, color: Colors.textMuted },
 });
