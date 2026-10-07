@@ -166,6 +166,7 @@ export default function RegisterScreen() {
                 onSubmitEditing={() => emailRef.current?.focus()}
                 editable={!loading}
                 placeholder="Jane Smith"
+                placeholderTextColor={Colors.textMuted}
               />
             </View>
             <FieldError message={errors.fullName} style={errorUnderInput} />
@@ -200,6 +201,7 @@ export default function RegisterScreen() {
                 onSubmitEditing={() => passwordRef.current?.focus()}
                 editable={!loading}
                 placeholder="name@company.com"
+                placeholderTextColor={Colors.textMuted}
               />
             </View>
             <FieldError message={errors.email} style={errorUnderInput} />
@@ -228,6 +230,8 @@ export default function RegisterScreen() {
                   setFieldError("password", check("password"))
                 }
                 secureTextEntry={!showPassword}
+                placeholder="Create a password"
+                placeholderTextColor={Colors.textMuted}
                 autoComplete="password-new"
                 textContentType="newPassword"
                 returnKeyType="done"

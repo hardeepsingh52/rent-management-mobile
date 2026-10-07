@@ -38,7 +38,11 @@ export function FormField({
           size={18}
           color={Colors.textMutedDark}
         />
-        <TextInput style={[styles.input, style]} {...inputProps} />
+        <TextInput
+          style={[styles.input, style]}
+          placeholderTextColor={Colors.textMuted}
+          {...inputProps}
+        />
       </View>
       <FieldError message={error} />
     </View>

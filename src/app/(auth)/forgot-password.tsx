@@ -63,6 +63,8 @@ export default function ForgotPasswordScreen() {
         autoCapitalize="none"
         keyboardType="email-address"
         editable={!loading}
+        placeholder="name@company.com"
+        placeholderTextColor={Colors.textMuted}
       />
 
       <Pressable

@@ -69,6 +69,7 @@ export function TotpEnrollment({
         maxLength={6}
         editable={!submitting}
         placeholder="000000"
+        placeholderTextColor={Colors.textMuted}
       />
 
       <Pressable

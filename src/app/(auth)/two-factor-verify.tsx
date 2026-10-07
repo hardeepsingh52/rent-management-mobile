@@ -124,6 +124,7 @@ useEffect(() => {
               autoFocus
               editable={!loading}
               placeholder="000000"
+              placeholderTextColor={Colors.textMuted}
             />
           ) : (
             <TextInput
@@ -138,6 +139,7 @@ useEffect(() => {
               autoFocus
               editable={!loading}
               placeholder="Recovery code"
+              placeholderTextColor={Colors.textMuted}
             />
           )}
 

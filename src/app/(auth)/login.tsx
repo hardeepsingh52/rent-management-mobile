@@ -142,6 +142,7 @@ export default function LoginScreen() {
               onSubmitEditing={() => passwordRef.current?.focus()}
               editable={!loading}
               placeholder="name@company.com"
+              placeholderTextColor={Colors.textMuted}
             />
           </View>
 
@@ -163,6 +164,8 @@ export default function LoginScreen() {
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
+              placeholder="Enter your password"
+              placeholderTextColor={Colors.textMuted}
               autoComplete="password"
               textContentType="password"
               returnKeyType="go"
