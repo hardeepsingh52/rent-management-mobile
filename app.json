@@ -30,7 +30,8 @@
         "android.permission.POST_NOTIFICATIONS"
       ],
       "package": "com.harrdeepsteam.rentmanagementmobile",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "versionCode": 2
     },
     "web": {
       "output": "static",
