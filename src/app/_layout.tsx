@@ -8,6 +8,7 @@ import { SessionProvider, useSessionContext } from "@/lib/session-context";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 
 SplashScreen.preventAutoHideAsync();
@@ -41,6 +42,7 @@ function RootNavigation() {
 
   return (
     <ThemeProvider value={DefaultTheme}>
+      <StatusBar style="dark" />
       <AnimatedSplashOverlay />
       <Stack screenOptions={{ headerShown: false }}>
               <Stack.Protected guard={!user}>
