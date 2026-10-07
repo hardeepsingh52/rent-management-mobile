@@ -81,7 +81,7 @@ export function chosen(
 }
 
 export function exactDigits(value: string, length: number): string | null {
-  return new RegExp(`^\d{${length}}$`).test(value.trim())
+  return new RegExp(`^\\d{${length}}$`).test(value.trim())
     ? null
     : `Enter the ${length}-digit code.`;
 }
