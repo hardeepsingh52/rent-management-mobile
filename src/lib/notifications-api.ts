@@ -52,3 +52,12 @@ export async function registerDeviceToken(
     throw await extractApiError(response);
   }
 }
+
+export async function markAllNotificationsRead(token: string): Promise<void> {
+  const response = await backendFetch("/notifications/read-all", token, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    throw await extractApiError(response);
+  }
+}

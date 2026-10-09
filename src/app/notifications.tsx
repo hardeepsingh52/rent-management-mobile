@@ -1,11 +1,16 @@
 import { Colors } from "@/constants/colors";
-import { markNotificationRead } from "@/lib/notifications-api";
+import {
+  markAllNotificationsRead,
+  markNotificationRead,
+} from "@/lib/notifications-api";
 import { useNotificationsQuery } from "@/lib/queries";
 import { useSession } from "@/lib/session-context";
 import type { NotificationItem } from "@/lib/types";
 import { useQueryClient } from "@tanstack/react-query";
+import { Stack } from "expo-router";
 import { useState } from "react";
 import {
+  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -31,6 +36,26 @@ export default function NotificationsScreen() {
     setRefreshing(false);
   }
 
+  const hasUnread = notifications?.some((n) => !n.isRead) ?? false;
+
+  async function handleMarkAllRead() {
+    queryClient.setQueryData<NotificationItem[]>(
+      ["notifications", "list", user.id],
+      (current) => current?.map((n) => ({ ...n, isRead: true })),
+    );
+    try {
+      await markAllNotificationsRead(user.token);
+    } catch (err) {
+      Alert.alert(
+        "Couldn't mark as read",
+        err instanceof Error ? err.message : "Please try again.",
+      );
+    }
+    // Refetch either way: it confirms the change, or restores the real state
+    // if the request failed, and updates the unread count on the Home bell.
+    queryClient.invalidateQueries({ queryKey: ["notifications"] });
+  }
+
   async function handlePress(item: NotificationItem) {
     if (item.isRead) {
       return;
@@ -47,6 +72,17 @@ export default function NotificationsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
+      <Stack.Screen
+        options={{
+          headerRight: hasUnread
+            ? () => (
+                <Pressable onPress={handleMarkAllRead} hitSlop={8}>
+                  <Text style={styles.markAll}>Mark all read</Text>
+                </Pressable>
+              )
+            : undefined,
+        }}
+      />
       <FlatList
         data={notifications ?? []}
         keyExtractor={(item) => String(item.id)}
@@ -89,6 +125,11 @@ const styles = StyleSheet.create({
   title: { fontSize: 14, fontWeight: "700", color: Colors.primaryDark },
   body: { fontSize: 13, color: Colors.textMuted, marginTop: 4 },
   date: { fontSize: 11, color: Colors.textMuted, marginTop: 8 },
+  markAll: {
+    color: Colors.accentTeal,
+    fontSize: 14,
+    fontWeight: "600",
+  },
   emptyText: {
     textAlign: "center",
     color: Colors.textMuted,

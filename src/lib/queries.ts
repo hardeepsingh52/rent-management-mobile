@@ -4,6 +4,7 @@ import {
   getMyNotifications,
   getUnreadNotificationCount,
 } from "./notifications-api";
+import { getMyProfile } from "./profile-api";
 import { getMyProperties, getProperty } from "./properties-api";
 import { getPropertyTypes } from "./property-types-api";
 import { useSession } from "./session-context";
@@ -81,6 +82,14 @@ export function useUnitStatusesQuery() {
     queryKey: ["lookups", "unit-statuses"],
     queryFn: () => getUnitStatuses(user.token),
     staleTime: LOOKUP_STALE_TIME,
+  });
+}
+
+export function useProfileQuery() {
+  const user = useSession();
+  return useQuery({
+    queryKey: ["profile", user.id],
+    queryFn: () => getMyProfile(user.token),
   });
 }
 

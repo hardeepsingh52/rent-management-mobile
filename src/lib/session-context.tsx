@@ -21,6 +21,7 @@ interface SessionContextValue {
   user: SessionUser | null;
   loading: boolean;
   signIn: (user: SessionUser) => Promise<void>;
+  updateFullName: (fullName: string) => Promise<void>;
   signOut: (reason?: "manual" | "expired") => Promise<void>;
 }
 
@@ -40,6 +41,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   async function signIn(newUser: SessionUser) {
     await saveSession(newUser);
     setUser(newUser);
+  }
+
+  // Reads the saved session rather than the `user` in this closure: a token
+  // refresh may have landed since this render, and writing stale tokens back
+  // would sign the user out.
+  async function updateFullName(fullName: string) {
+    const current = await getSession();
+    if (!current) {
+      return;
+    }
+    const next = { ...current, fullName };
+    await saveSession(next);
+    setUser(next);
   }
 
   async function signOut(reason: "manual" | "expired" = "manual") {
@@ -78,7 +92,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   return (
-    <SessionContext.Provider value={{ user, loading, signIn, signOut }}>
+    <SessionContext.Provider
+      value={{ user, loading, signIn, updateFullName, signOut }}
+    >
       {children}
     </SessionContext.Provider>
   );

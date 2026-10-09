@@ -77,6 +77,14 @@ function RootNavigation() {
             options={{ headerShown: true, title: "Notifications" }}
           />
           <Stack.Screen
+            name="edit-profile"
+            options={{ headerShown: true, title: "Edit profile" }}
+          />
+          <Stack.Screen
+            name="change-password"
+            options={{ headerShown: true, title: "Change password" }}
+          />
+          <Stack.Screen
             name="security-2fa"
             options={{ headerShown: true, title: "Two-factor authentication" }}
           />

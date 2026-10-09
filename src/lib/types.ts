@@ -169,3 +169,11 @@ export interface TenantTenancy {
     email: string | null;
   } | null;
 }
+
+export interface UserProfile {
+  firstName: string;
+  middleName: string | null;
+  lastName: string;
+  fullName: string;
+  email: string;
+}

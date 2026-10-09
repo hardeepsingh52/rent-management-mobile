@@ -91,13 +91,13 @@ export default function ProfileScreen() {
           <ProfileRow
             icon="account-outline"
             label="Edit profile"
-            onPress={() => comingSoon("Edit profile")}
+            onPress={() => router.push("/edit-profile")}
           />
           <View style={styles.divider} />
           <ProfileRow
             icon="lock-outline"
             label="Change password"
-            onPress={() => comingSoon("Change password")}
+            onPress={() => router.push("/change-password")}
           />
           <View style={styles.divider} />
           <ProfileRow

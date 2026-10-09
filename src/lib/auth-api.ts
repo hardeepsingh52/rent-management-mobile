@@ -245,3 +245,22 @@ export async function forgotPassword(email: string): Promise<void> {
     throw await extractApiError(response);
   }
 }
+// The backend signs out every other device and returns a fresh session, which
+// the caller must save so this device stays signed in.
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+  token: string,
+): Promise<SessionUser> {
+  const response = await backendFetch("/auth/change-password", token, {
+    method: "POST",
+    body: JSON.stringify({
+      CurrentPassword: currentPassword,
+      NewPassword: newPassword,
+    }),
+  });
+  if (!response.ok) {
+    throw await extractApiError(response);
+  }
+  return toSessionUser(await response.json());
+}
